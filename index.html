@@ -336,6 +336,7 @@
 
         let datosGlobales = [];
         let preciosUnitariosGuardados = {}; 
+        let ultimoAgrupadoGlobal = {}; // Referencia limpia para cálculo monetario seguro
         let graficoBarras, graficoDoughnut;
 
         const estacionesOficiales = ["Lizama", "Chimita", "Sebastopol", "Vasconia", "Galán", "Santa Rosa"];
@@ -485,6 +486,8 @@
                 tablaBody.appendChild(tr);
             });
 
+            ultimoAgrupadoGlobal = agrupadoCodigo; // Guardamos referencia limpia
+
             document.getElementById("valTotalHallazgos").innerText = datos.length;
             document.getElementById("valAlta").innerText = cntAlta;
             document.getElementById("valMedia").innerText = cntMedia;
@@ -551,18 +554,23 @@
 
         function actualizarPrecio(codigo, valor) {
             preciosUnitariosGuardados[codigo] = parseFloat(valor) || 0;
+            // Re-renderizamos manteniendo los filtros actuales recalculando con la referencia limpia
             aplicarFiltros();
         }
 
         function recalcularMontoGlobal() {
             let totalMonto = 0;
-            for (const cod in preciosUnitariosGuardados) {
-                const elemVal = document.getElementById(`valTotal_${cod}`);
-                if (elemVal) {
-                    let numVal = parseFloat(elemVal.innerText.replace(/[^0-9.-]+/g,"")) || 0;
-                    totalMonto += numVal;
-                }
+            // Cálculo monetario seguro directamente desde los datos agrupados en memoria
+            for (const cod in ultimoAgrupadoGlobal) {
+                let item = ultimoAgrupadoGlobal[cod];
+                let sumaCantFila = 0;
+                estacionesOficiales.forEach(e => {
+                    sumaCantFila += item.cantidades[e];
+                });
+                let precioUnit = preciosUnitariosGuardados[cod] || 0;
+                totalMonto += (sumaCantFila * precioUnit);
             }
+
             const formatoCOP = "$" + totalMonto.toLocaleString('es-CO') + " COP";
             document.getElementById("totMontoGlobal").innerText = formatoCOP;
             document.getElementById("valMontoTotal").innerText = formatoCOP;
