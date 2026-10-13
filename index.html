@@ -129,6 +129,24 @@
             font-weight: bold;
             color: #065f46;
         }
+
+        .btn-mapa {
+            background-color: #0d9488;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.78rem;
+            border-radius: 6px;
+            padding: 2px 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.2s;
+        }
+        .btn-mapa:hover {
+            background-color: #0f766e;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="container-fluid px-4 py-4">
@@ -142,7 +160,7 @@
                 </div>
                 <div class="text-end">
                     <h3 class="m-0 fw-bold text-dark" style="color: var(--primary-blue) !important;">INSPECCIONES VISUALES DE INTEGRIDAD</h3>
-                    <span class="badge bg-secondary">Control, Valorización y Seguimiento de Campo</span>
+                    <span class="badge bg-secondary">Control, Valorización y Ubicación de Campo</span>
                 </div>
             </div>
         </div>
@@ -298,7 +316,7 @@
         </div>
     </div>
 
-    <!-- Tabla Detallada de Registros -->
+    <!-- Tabla Detallada de Registros con Columna de Ubicación Satelital -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box">
@@ -316,6 +334,7 @@
                                 <th>Componente / Hallazgo</th>
                                 <th>Prioridad</th>
                                 <th>Cantidad</th>
+                                <th>Ubicación Satelital</th>
                                 <th>Fecha</th>
                             </tr>
                         </thead>
@@ -328,7 +347,7 @@
         </div>
     </div>
 
-    <!-- Lógica de Conexión, Agrupación Financiera y Filtros -->
+    <!-- Lógica de Conexión, Conversión de Coordenadas y Filtros -->
     <script>
         Chart.register(ChartDataLabels);
 
@@ -344,6 +363,49 @@
         document.addEventListener("DOMContentLoaded", function() {
             cargarDatosDesdeSheets();
         });
+
+        /**
+         * Convierte coordenadas DMS (Ej: 6°8'47,028"N 73°48'31,116"W)
+         * a URL de Google Maps en vista satelital (desde el espacio).
+         */
+        function convertirDmsAGoogleMaps(coordDMS) {
+            if (!coordDMS || coordDMS === "-" || coordDMS === "N/A") return null;
+
+            try {
+                // Regex para capturar grados, minutos, segundos y orientaciones
+                const regex = /([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])\s*([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])/;
+                const match = String(coordDMS).match(regex);
+
+                if (!match) {
+                    // Si ya viene en formato decimal
+                    return `https://www.google.com/maps?q=${encodeURIComponent(coordDMS)}&t=k`;
+                }
+
+                // Latitud
+                let latDeg = parseFloat(match[1]);
+                let latMin = parseFloat(match[2]);
+                let latSec = parseFloat(match[3].replace(',', '.'));
+                let latDir = match[4].toUpperCase();
+
+                let latDec = latDeg + (latMin / 60) + (latSec / 3600);
+                if (latDir === 'S') latDec = -latDec;
+
+                // Longitud
+                let lngDeg = parseFloat(match[5]);
+                let lngMin = parseFloat(match[6]);
+                let lngSec = parseFloat(match[7].replace(',', '.'));
+                let lngDir = match[8].toUpperCase();
+
+                let lngDec = lngDeg + (lngMin / 60) + (lngSec / 3600);
+                if (lngDir === 'W' || lngDir === 'O') lngDec = -lngDec;
+
+                // Generar URL con t=k para vista Satelital
+                return `https://www.google.com/maps?q=${latDec.toFixed(6)},${lngDec.toFixed(6)}&t=k`;
+            } catch (e) {
+                console.error("Error convirtiendo coordenada:", e);
+                return null;
+            }
+        }
 
         async function cargarDatosDesdeSheets() {
             try {
@@ -442,10 +504,9 @@
                 let cantidad = parseFloat(row["Cantidad"]) || 1;
                 let unidad = row["Unidad"] || "und";
                 let capitulo = row["Capítulo"] || "GENERAL";
-                
-                // Tomamos específicamente la columna Partida oficial del catálogo para el cuadro consolidado
                 let partidaOficial = row["Partida"] || row["Descripción de la partida"] || row["Componente inspeccionado"] || codigo;
                 let descripcionHallazgo = row["Componente inspeccionado"] || row["Hallazgo detectado"] || "-";
+                let rawUbicacion = row["Ubicación (coordenadas)"] || row["Ubicación"] || "";
 
                 if (prioridad === "alta") cntAlta++;
                 else if (prioridad === "media") cntMedia++;
@@ -461,7 +522,7 @@
                     agrupadoCodigo[codigo] = {
                         codigo: codigo,
                         capitulo: capitulo,
-                        partida: partidaOficial, // Guardamos la partida oficial
+                        partida: partidaOficial,
                         unidad: unidad,
                         cantidades: { "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0 },
                         numHallazgos: 0
@@ -475,15 +536,22 @@
                 });
                 agrupadoCodigo[codigo].numHallazgos++;
 
+                // Generar botón a Google Maps Satelital
+                let urlMaps = convertirDmsAGoogleMaps(rawUbicacion);
+                let btnUbicacion = urlMaps 
+                    ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Abrir Google Maps Satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
+                    : `<span class="text-muted small">-</span>`;
+
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td><b>${codigo}</b></td>
+                    <td class="text-center"><b>${codigo}</b></td>
                     <td>${estacion}</td>
                     <td>${row["Equipo / Sistema"] || "-"}</td>
                     <td>${descripcionHallazgo}</td>
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
+                    <td class="text-center">${btnUbicacion}</td>
                     <td class="text-center">${row["Fecha inspección"] || "-"}</td>
                 `;
                 tablaBody.appendChild(tr);
@@ -522,9 +590,9 @@
 
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td><b>${item.codigo}</b></td>
+                    <td class="text-center"><b>${item.codigo}</b></td>
                     <td><small>${item.capitulo}</small></td>
-                    <td><b>${item.partida}</b></td> <!-- Mostramos la partida oficial -->
+                    <td><b>${item.partida}</b></td>
                     <td class="text-center"><span class="badge bg-light text-dark border">${item.unidad}</span></td>
                     <td class="text-center">${item.cantidades["Lizama"] > 0 ? item.cantidades["Lizama"].toFixed(2) : "-"}</td>
                     <td class="text-center">${item.cantidades["Chimita"] > 0 ? item.cantidades["Chimita"].toFixed(2) : "-"}</td>
