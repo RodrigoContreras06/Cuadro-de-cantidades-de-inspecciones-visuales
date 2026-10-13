@@ -8,9 +8,13 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS (Mapas Interactivos) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Chart.js + Plugin DataLabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -101,6 +105,14 @@
             width: 100%;
         }
 
+        /* Contenedor del Mapa Interactivo */
+        #mapaRuta {
+            height: 380px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         /* Tabla estilizada */
         .table-custom th {
             background-color: var(--primary-blue) !important;
@@ -160,7 +172,7 @@
                 </div>
                 <div class="text-end">
                     <h3 class="m-0 fw-bold text-dark" style="color: var(--primary-blue) !important;">INSPECCIONES VISUALES DE INTEGRIDAD</h3>
-                    <span class="badge bg-secondary">Control, Valorización y Ubicación de Campo</span>
+                    <span class="badge bg-secondary">Control, Valorización y Trazabilidad Geoespacial</span>
                 </div>
             </div>
         </div>
@@ -242,6 +254,19 @@
         </div>
     </div>
 
+    <!-- Sección de Mapas e Inspectores Visuales de Ruta -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="panel-box">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-primary m-0"><i class="fa-solid fa-earth-americas"></i> Trazabilidad Satelital de Ruta de Inspección en Campo</h6>
+                    <small class="text-muted">Visualización interactiva de puntos y traza de la línea inspeccionada (Vista Satelital)</small>
+                </div>
+                <div id="mapaRuta"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sección Simétrica de Gráficos -->
     <div class="row g-3 mb-4">
         <div class="col-lg-7 col-md-12">
@@ -269,7 +294,7 @@
                 <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 gap-2">
                     <div>
                         <h5 class="fw-bold text-success m-0"><i class="fa-solid fa-file-invoice-dollar"></i> Cuadro de Consolidación Financiera y Cantidades por Estación</h5>
-                        <small class="text-muted">Suma acumulada de cantidades agrupadas por Estación y Partida oficial del catálogo para propuestas económicas.</small>
+                        <small class="text-muted">Suma acumulada de cantidades agrupadas por Estación y Partida oficial del catálogo.</small>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -347,7 +372,7 @@
         </div>
     </div>
 
-    <!-- Lógica de Conexión, Conversión de Coordenadas y Filtros -->
+    <!-- Lógica de Conexión, Conversión de Coordenadas, Mapa Interactivo Leaflet y Filtros -->
     <script>
         Chart.register(ChartDataLabels);
 
@@ -357,27 +382,40 @@
         let preciosUnitariosGuardados = {}; 
         let ultimoAgrupadoGlobal = {}; 
         let graficoBarras, graficoDoughnut;
+        let map = null;
+        let layerGroupMarkers = null;
 
         const estacionesOficiales = ["Lizama", "Chimita", "Sebastopol", "Vasconia", "Galán", "Santa Rosa"];
 
         document.addEventListener("DOMContentLoaded", function() {
+            inicializarMapaLeaflet();
             cargarDatosDesdeSheets();
         });
 
+        function inicializarMapaLeaflet() {
+            // Coordenadas iniciales centradas aprox en Magdalena Medio / Santander
+            map = L.map('mapaRuta').setView([7.065, -73.854], 9);
+
+            // Capa Satelital de Esri World Imagery (Vista desde el espacio nítida)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                maxZoom: 19
+            }).addTo(map);
+
+            layerGroupMarkers = L.layerGroup().addTo(map);
+        }
+
         /**
-         * Convierte coordenadas DMS (Ej: 6°8'47,028"N 73°48'31,116"W)
-         * a URL de Google Maps en vista satelital (desde el espacio).
+         * Convierte coordenadas DMS a Objeto Lat/Lng decimal
          */
-        function convertirDmsAGoogleMaps(coordDMS) {
+        function convertirDmsACoordenada(coordDMS) {
             if (!coordDMS || coordDMS === "-" || coordDMS === "N/A") return null;
 
             try {
                 const regex = /([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])\s*([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])/;
                 const match = String(coordDMS).match(regex);
 
-                if (!match) {
-                    return `https://www.google.com/maps?q=${encodeURIComponent(coordDMS)}&t=k`;
-                }
+                if (!match) return null;
 
                 let latDeg = parseFloat(match[1]);
                 let latMin = parseFloat(match[2]);
@@ -395,10 +433,50 @@
                 let lngDec = lngDeg + (lngMin / 60) + (lngSec / 3600);
                 if (lngDir === 'W' || lngDir === 'O') lngDec = -lngDec;
 
-                return `https://www.google.com/maps?q=${latDec.toFixed(6)},${lngDec.toFixed(6)}&t=k`;
+                return { lat: latDec, lng: lngDec };
             } catch (e) {
-                console.error("Error convirtiendo coordenada:", e);
                 return null;
+            }
+        }
+
+        function actualizarMapaRuta(datosFiltrados) {
+            if (!map || !layerGroupMarkers) return;
+            layerGroupMarkers.clearLayers();
+
+            let puntosRuta = [];
+            let bounds = L.latLngBounds();
+
+            datosFiltrados.forEach((item, index) => {
+                let rawUbicacion = item["Ubicación (coordenadas)"] || item["Ubicación"] || "";
+                let coords = convertirDmsACoordenada(rawUbicacion);
+
+                if (coords) {
+                    let latLng = [coords.lat, coords.lng];
+                    puntosRuta.push(latLng);
+                    bounds.extend(latLng);
+
+                    let codigo = item["Código partida"] || item["Código"] || "S/C";
+                    let equipo = item["Equipo / Sistema"] || "-";
+                    let estacion = item["Estación"] || "-";
+                    let prioridad = (item["Prioridad"] || "").toUpperCase();
+
+                    let marker = L.marker(latLng).bindPopup(`
+                        <div style="font-size: 0.85rem;">
+                            <b>Estación:</b> ${estacion}<br>
+                            <b>Equipo:</b> ${equipo}<br>
+                            <b>Código:</b> ${codigo}<br>
+                            <b>Prioridad:</b> ${prioridad}<br>
+                            <a href="https://www.google.com/maps?q=${coords.lat},${coords.lng}&t=k" target="_blank" class="btn btn-xs btn-success mt-1 py-0 px-2" style="font-size:0.75rem;">🗺️ Abrir Google Maps</a>
+                        </div>
+                    `);
+                    layerGroupMarkers.addLayer(marker);
+                }
+            });
+
+            // Si hay puntos, trazar la línea de recorrido (ruta) y ajustar el zoom
+            if (puntosRuta.length > 0) {
+                let polyline = L.polyline(puntosRuta, { color: '#f97316', weight: 4, opacity: 0.8, dashArray: '6, 6' }).addTo(layerGroupMarkers);
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
             }
         }
 
@@ -481,6 +559,7 @@
             });
 
             renderizarDashboard(datosFiltrados);
+            actualizarMapaRuta(datosFiltrados);
         }
 
         function renderizarDashboard(datos) {
@@ -499,8 +578,6 @@
                 let cantidad = parseFloat(row["Cantidad"]) || 1;
                 let unidad = row["Unidad"] || "und";
                 let capitulo = row["Capítulo"] || "GENERAL";
-                
-                // Mapear el nombre de la Partida oficial
                 let partidaOficial = row["Partida"] || row["Descripción de la partida"] || row["Componente inspeccionado"] || codigo;
                 let rawUbicacion = row["Ubicación (coordenadas)"] || row["Ubicación"] || "";
 
@@ -532,10 +609,10 @@
                 });
                 agrupadoCodigo[codigo].numHallazgos++;
 
-                // Generar botón a Google Maps Satelital
-                let urlMaps = convertirDmsAGoogleMaps(rawUbicacion);
-                let btnUbicacion = urlMaps 
-                    ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Abrir Google Maps Satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
+                // Generar botón de respaldo a Google Maps Satelital (Comodín Opción 1)
+                let coords = convertirDmsACoordenada(rawUbicacion);
+                let btnUbicacion = coords 
+                    ? `<a href="https://www.google.com/maps?q=${coords.lat},${coords.lng}&t=k" target="_blank" class="btn-mapa" title="Abrir Google Maps Satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
                     : `<span class="text-muted small">-</span>`;
 
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
