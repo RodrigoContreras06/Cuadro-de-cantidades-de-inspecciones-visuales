@@ -147,22 +147,6 @@
             background-color: #0f766e;
             color: #ffffff;
         }
-
-        .btn-ruta-global {
-            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
-            color: white;
-            font-weight: 700;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-            transition: all 0.2s;
-        }
-        .btn-ruta-global:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
-            color: white;
-        }
     </style>
 </head>
 <body class="container-fluid px-4 py-4">
@@ -176,13 +160,13 @@
                 </div>
                 <div class="text-end">
                     <h3 class="m-0 fw-bold text-dark" style="color: var(--primary-blue) !important;">INSPECCIONES VISUALES DE INTEGRIDAD</h3>
-                    <span class="badge bg-secondary">Control, Valorización y Puntos Satelitales de Campo</span>
+                    <span class="badge bg-secondary">Control, Valorización y Ubicación Satelital</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Panel de Filtros Interactivos -->
+    <!-- Panel de Filtros Interactivos (Incluyendo Filtro por Número de Equipo) -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box py-3">
@@ -200,12 +184,9 @@
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-6">
-                        <label class="filter-label"><i class="fa-solid fa-triangle-exclamation"></i> Prioridad</label>
-                        <select id="filtroPrioridad" class="form-select form-select-sm" onchange="aplicarFiltros()">
-                            <option value="">Todas las prioridades</option>
-                            <option value="alta">Alta 🔴</option>
-                            <option value="media">Media 🟡</option>
-                            <option value="baja">Baja 🟢</option>
+                        <label class="filter-label"><i class="fa-solid fa-gears"></i> N° de Equipo / SAP</label>
+                        <select id="filtroEquipo" class="form-select form-select-sm" onchange="aplicarFiltros()">
+                            <option value="">Todos los equipos</option>
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-6">
@@ -215,12 +196,20 @@
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-6">
-                        <label class="filter-label"><i class="fa-solid fa-calendar-day"></i> Fecha Desde</label>
-                        <input type="date" id="fechaDesde" class="form-control form-control-sm" onchange="aplicarFiltros()">
+                        <label class="filter-label"><i class="fa-solid fa-triangle-exclamation"></i> Prioridad</label>
+                        <select id="filtroPrioridad" class="form-select form-select-sm" onchange="aplicarFiltros()">
+                            <option value="">Todas</option>
+                            <option value="alta">Alta 🔴</option>
+                            <option value="media">Media 🟡</option>
+                            <option value="baja">Baja 🟢</option>
+                        </select>
                     </div>
                     <div class="col-md-2 col-sm-6">
-                        <label class="filter-label"><i class="fa-solid fa-calendar-check"></i> Fecha Hasta</label>
-                        <input type="date" id="fechaHasta" class="form-control form-control-sm" onchange="aplicarFiltros()">
+                        <label class="filter-label"><i class="fa-solid fa-calendar-day"></i> Fechas (Desde / Hasta)</label>
+                        <div class="d-flex gap-1">
+                            <input type="date" id="fechaDesde" class="form-control form-control-sm" onchange="aplicarFiltros()" title="Fecha Desde">
+                            <input type="date" id="fechaHasta" class="form-control form-control-sm" onchange="aplicarFiltros()" title="Fecha Hasta">
+                        </div>
                     </div>
                     <div class="col-md-2 col-sm-12 text-end">
                         <button class="btn btn-sm btn-outline-danger w-100" onclick="limpiarFiltros()"><i class="fa-solid fa-rotate-left"></i> Limpiar Filtros</button>
@@ -254,21 +243,6 @@
             <div class="kpi-card money">
                 <div class="kpi-title">Monto Estimado Alcance</div>
                 <div class="kpi-value text-success" id="valMontoTotal">$0 COP</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barra de Acción para Mostrar Puntos Geográficos Exactos en Google Maps -->
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <div class="panel-box py-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div>
-                    <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-location-dot"></i> Trazabilidad de Puntos en Planta</h5>
-                    <small class="text-muted">Abre los puntos filtrados respetando la ubicación exacta dentro de las instalaciones industriales.</small>
-                </div>
-                <button id="btnAbrirRuta" class="btn btn-ruta-global" onclick="abrirPuntosExactosMaps()" disabled>
-                    <i class="fa-solid fa-earth-americas"></i> Ver Puntos Filtrados en Google Maps (Satélite)
-                </button>
             </div>
         </div>
     </div>
@@ -361,7 +335,7 @@
                             <tr>
                                 <th>Código</th>
                                 <th>Estación</th>
-                                <th>Equipo / Sistema</th>
+                                <th>Equipo SAP / TAG</th>
                                 <th>Partida</th>
                                 <th>Prioridad</th>
                                 <th>Cantidad</th>
@@ -387,7 +361,6 @@
         let datosGlobales = [];
         let preciosUnitariosGuardados = {}; 
         let ultimoAgrupadoGlobal = {}; 
-        let datosFiltradosActuales = [];
         let graficoBarras, graficoDoughnut;
 
         const estacionesOficiales = ["Lizama", "Chimita", "Sebastopol", "Vasconia", "Galán", "Santa Rosa"];
@@ -397,16 +370,18 @@
         });
 
         /**
-         * Convierte coordenadas DMS a Objeto Lat/Lng decimal
+         * Convierte coordenadas DMS a Lat/Lng decimal para Google Maps Satelital (&t=k)
          */
-        function convertirDmsACoordenada(coordDMS) {
+        function convertirDmsAGoogleMaps(coordDMS) {
             if (!coordDMS || coordDMS === "-" || coordDMS === "N/A") return null;
 
             try {
                 const regex = /([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])\s*([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])/;
                 const match = String(coordDMS).match(regex);
 
-                if (!match) return null;
+                if (!match) {
+                    return `https://www.google.com/maps?q=${encodeURIComponent(coordDMS)}&t=k`;
+                }
 
                 let latDeg = parseFloat(match[1]);
                 let latMin = parseFloat(match[2]);
@@ -422,34 +397,10 @@
                 let lngDec = lngDeg + (lngMin / 60) + (lngSec / 3600);
                 if (lngDir === 'W' || lngDir === 'O') lngDec = -lngDec;
 
-                return { lat: latDec.toFixed(6), lng: lngDec.toFixed(6) };
+                return `https://www.google.com/maps?q=${latDec.toFixed(6)},${lngDec.toFixed(6)}&t=k&z=18`;
             } catch (e) {
                 return null;
             }
-        }
-
-        function abrirPuntosExactosMaps() {
-            if (!datosFiltradosActuales || datosFiltradosActuales.length === 0) return;
-
-            let coordenadasValidas = [];
-            datosFiltradosActuales.forEach(item => {
-                let rawUbicacion = item["Ubicación (coordenadas)"] || item["Ubicación"] || "";
-                let coord = convertirDmsACoordenada(rawUbicacion);
-                if (coord) {
-                    coordenadasValidas.push(`${coord.lat},${coord.lng}`);
-                }
-            });
-
-            if (coordenadasValidas.length === 0) {
-                alert("No hay coordenadas válidas en los filtros actuales.");
-                return;
-            }
-
-            // Usar el primer punto como centro base y abrir vista satelital
-            // &t=k fuerza la vista satelital desde el espacio
-            let primerPunto = coordenadasValidas[0];
-            let urlMaps = `https://www.google.com/maps?q=${primerPunto}&t=k&z=17`;
-            window.open(urlMaps, '_blank');
         }
 
         async function cargarDatosDesdeSheets() {
@@ -458,7 +409,7 @@
                 datosGlobales = await respuesta.json();
                 
                 if (datosGlobales && datosGlobales.length > 0) {
-                    poblarSelectCodigos(datosGlobales);
+                    poblarSelectsFiltros(datosGlobales);
                     aplicarFiltros();
                 }
             } catch (error) {
@@ -466,18 +417,29 @@
             }
         }
 
-        function poblarSelectCodigos(datos) {
+        function poblarSelectsFiltros(datos) {
             const selectCod = document.getElementById("filtroCodigo");
+            const selectEquipo = document.getElementById("filtroEquipo");
+            
             const codigosUnicos = new Set();
+            const equiposUnicos = new Set();
             
             datos.forEach(d => {
                 let cod = d["Código partida"] || d["Código"] || "";
                 if (cod) codigosUnicos.add(cod);
+
+                let eq = d["Equipo SAP"] || d["TAG"] || d["Equipo / Sistema"] || "";
+                if (eq && eq !== "N/A") equiposUnicos.add(eq);
             });
             
             selectCod.innerHTML = '<option value="">Todos los códigos</option>';
             Array.from(codigosUnicos).sort().forEach(c => {
                 selectCod.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+
+            selectEquipo.innerHTML = '<option value="">Todos los equipos</option>';
+            Array.from(equiposUnicos).sort().forEach(e => {
+                selectEquipo.innerHTML += `<option value="${e}">${e}</option>`;
             });
         }
 
@@ -488,8 +450,9 @@
 
         function limpiarFiltros() {
             document.getElementById("filtroEstacion").value = "";
-            document.getElementById("filtroPrioridad").value = "";
+            document.getElementById("filtroEquipo").value = "";
             document.getElementById("filtroCodigo").value = "";
+            document.getElementById("filtroPrioridad").value = "";
             document.getElementById("fechaDesde").value = "";
             document.getElementById("fechaHasta").value = "";
             document.getElementById("buscadorTabla").value = "";
@@ -498,22 +461,25 @@
 
         function aplicarFiltros() {
             const fEstacion = document.getElementById("filtroEstacion").value.toLowerCase();
-            const fPrioridad = document.getElementById("filtroPrioridad").value.toLowerCase();
+            const fEquipo = document.getElementById("filtroEquipo").value.toLowerCase();
             const fCodigo = document.getElementById("filtroCodigo").value.toLowerCase();
+            const fPrioridad = document.getElementById("filtroPrioridad").value.toLowerCase();
             const fDesde = document.getElementById("fechaDesde").value;
             const fHasta = document.getElementById("fechaHasta").value;
             const fTexto = document.getElementById("buscadorTabla").value.toLowerCase();
 
-            datosFiltradosActuales = datosGlobales.filter(item => {
+            const datosFiltrados = datosGlobales.filter(item => {
                 let estacion = (item["Estación"] || "").toLowerCase();
-                let prioridad = (item["Prioridad"] || "").toLowerCase();
+                let equipo = (item["Equipo SAP"] || item["TAG"] || item["Equipo / Sistema"] || "").toLowerCase();
                 let codigo = (item["Código partida"] || item["Código"] || "").toLowerCase();
+                let prioridad = (item["Prioridad"] || "").toLowerCase();
                 let fechaStr = item["Fecha inspección"] || item["Fecha"] || "";
                 let textoFila = JSON.stringify(item).toLowerCase();
 
                 if (fEstacion && !estacion.includes(fEstacion)) return false;
-                if (fPrioridad && prioridad !== fPrioridad) return false;
+                if (fEquipo && !equipo.includes(fEquipo)) return false;
                 if (fCodigo && codigo !== fCodigo) return false;
+                if (fPrioridad && prioridad !== fPrioridad) return false;
                 if (fTexto && !textoFila.includes(fTexto)) return false;
 
                 if (fDesde || fHasta) {
@@ -530,14 +496,7 @@
                 return true;
             });
 
-            const btnRuta = document.getElementById("btnAbrirRuta");
-            if (datosFiltradosActuales.length > 0) {
-                btnRuta.removeAttribute("disabled");
-            } else {
-                btnRuta.setAttribute("disabled", "true");
-            }
-
-            renderizarDashboard(datosFiltradosActuales);
+            renderizarDashboard(datosFiltrados);
         }
 
         function renderizarDashboard(datos) {
@@ -556,6 +515,7 @@
                 let cantidad = parseFloat(row["Cantidad"]) || 1;
                 let unidad = row["Unidad"] || "und";
                 let capitulo = row["Capítulo"] || "GENERAL";
+                let equipoSapTag = row["Equipo SAP"] || row["TAG"] || row["Equipo / System"] || "-";
                 let partidaOficial = row["Partida"] || row["Descripción de la partida"] || row["Componente inspeccionado"] || codigo;
                 let rawUbicacion = row["Ubicación (coordenadas)"] || row["Ubicación"] || "";
 
@@ -588,9 +548,9 @@
                 agrupadoCodigo[codigo].numHallazgos++;
 
                 // Botón individual de Google Maps Satelital por registro
-                let coord = convertirDmsACoordenada(rawUbicacion);
-                let btnUbicacion = coord 
-                    ? `<a href="https://www.google.com/maps?q=${coord.lat},${coord.lng}&t=k" target="_blank" class="btn-mapa" title="Ver Punto en Google Maps"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
+                let urlMaps = convertirDmsAGoogleMaps(rawUbicacion);
+                let btnUbicacion = urlMaps 
+                    ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Ver punto exacto en Google Maps Satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
                     : `<span class="text-muted small">-</span>`;
 
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
@@ -598,7 +558,7 @@
                 tr.innerHTML = `
                     <td class="text-center"><b>${codigo}</b></td>
                     <td>${estacion}</td>
-                    <td>${row["Equipo / Sistema"] || "-"}</td>
+                    <td><small class="fw-bold">${equipoSapTag}</small><br><span class="text-muted">${row["Equipo / Sistema"] || ""}</span></td>
                     <td>${partidaOficial}</td>
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
