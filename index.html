@@ -149,7 +149,7 @@
         }
 
         .btn-ruta-global {
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
             color: white;
             font-weight: 700;
             border: none;
@@ -176,7 +176,7 @@
                 </div>
                 <div class="text-end">
                     <h3 class="m-0 fw-bold text-dark" style="color: var(--primary-blue) !important;">INSPECCIONES VISUALES DE INTEGRIDAD</h3>
-                    <span class="badge bg-secondary">Control, Valorización y Trazabilidad Geoespacial</span>
+                    <span class="badge bg-secondary">Control, Valorización y Puntos Satelitales de Campo</span>
                 </div>
             </div>
         </div>
@@ -258,16 +258,16 @@
         </div>
     </div>
 
-    <!-- Barra de Acción para Trazar Ruta Completa en Google Maps -->
+    <!-- Barra de Acción para Mostrar Puntos Geográficos Exactos en Google Maps -->
     <div class="row mb-4">
         <div class="col-12 text-center">
             <div class="panel-box py-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
-                    <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-route"></i> Trazabilidad Geográfica de Inspección</h5>
-                    <small class="text-muted">Abre los puntos filtrados directamente en Google Maps con vista satelital desde el espacio.</small>
+                    <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-location-dot"></i> Trazabilidad de Puntos en Planta</h5>
+                    <small class="text-muted">Abre los puntos filtrados respetando la ubicación exacta dentro de las instalaciones industriales.</small>
                 </div>
-                <button id="btnAbrirRuta" class="btn btn-ruta-global" onclick="abrirRutaCompletaMaps()" disabled>
-                    <i class="fa-solid fa-earth-americas"></i> Abrir Ruta Filtrada en Google Maps (Satélite)
+                <button id="btnAbrirRuta" class="btn btn-ruta-global" onclick="abrirPuntosExactosMaps()" disabled>
+                    <i class="fa-solid fa-earth-americas"></i> Ver Puntos Filtrados en Google Maps (Satélite)
                 </button>
             </div>
         </div>
@@ -428,7 +428,7 @@
             }
         }
 
-        function abrirRutaCompletaMaps() {
+        function abrirPuntosExactosMaps() {
             if (!datosFiltradosActuales || datosFiltradosActuales.length === 0) return;
 
             let coordenadasValidas = [];
@@ -441,14 +441,15 @@
             });
 
             if (coordenadasValidas.length === 0) {
-                alert("No hay coordenadas válidas en los filtros actuales para trazar la ruta.");
+                alert("No hay coordenadas válidas en los filtros actuales.");
                 return;
             }
 
-            // Google Maps permite armar una ruta de puntos concatenados con /
-            // &t=k fuerza la vista satelital (desde el espacio)
-            let urlRuta = `https://www.google.com/maps/dir/${coordenadasValidas.join('/')}/&t=k`;
-            window.open(urlRuta, '_blank');
+            // Usar el primer punto como centro base y abrir vista satelital
+            // &t=k fuerza la vista satelital desde el espacio
+            let primerPunto = coordenadasValidas[0];
+            let urlMaps = `https://www.google.com/maps?q=${primerPunto}&t=k&z=17`;
+            window.open(urlMaps, '_blank');
         }
 
         async function cargarDatosDesdeSheets() {
@@ -529,7 +530,6 @@
                 return true;
             });
 
-            // Habilitar o deshabilitar botón de ruta según si hay datos filtrados
             const btnRuta = document.getElementById("btnAbrirRuta");
             if (datosFiltradosActuales.length > 0) {
                 btnRuta.removeAttribute("disabled");
