@@ -316,7 +316,7 @@
         </div>
     </div>
 
-    <!-- Tabla Detallada de Registros con Columna de Ubicación Satelital -->
+    <!-- Tabla Detallada de Registros con Columna de Partida -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box">
@@ -331,7 +331,7 @@
                                 <th>Código</th>
                                 <th>Estación</th>
                                 <th>Equipo / Sistema</th>
-                                <th>Componente / Hallazgo</th>
+                                <th>Partida</th>
                                 <th>Prioridad</th>
                                 <th>Cantidad</th>
                                 <th>Ubicación Satelital</th>
@@ -372,16 +372,13 @@
             if (!coordDMS || coordDMS === "-" || coordDMS === "N/A") return null;
 
             try {
-                // Regex para capturar grados, minutos, segundos y orientaciones
                 const regex = /([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])\s*([0-9]+)°\s*([0-9]+)'\s*([0-9]+[.,]?[0-9]*)"\s*([NnSsEeWwOo])/;
                 const match = String(coordDMS).match(regex);
 
                 if (!match) {
-                    // Si ya viene en formato decimal
                     return `https://www.google.com/maps?q=${encodeURIComponent(coordDMS)}&t=k`;
                 }
 
-                // Latitud
                 let latDeg = parseFloat(match[1]);
                 let latMin = parseFloat(match[2]);
                 let latSec = parseFloat(match[3].replace(',', '.'));
@@ -390,7 +387,6 @@
                 let latDec = latDeg + (latMin / 60) + (latSec / 3600);
                 if (latDir === 'S') latDec = -latDec;
 
-                // Longitud
                 let lngDeg = parseFloat(match[5]);
                 let lngMin = parseFloat(match[6]);
                 let lngSec = parseFloat(match[7].replace(',', '.'));
@@ -399,7 +395,6 @@
                 let lngDec = lngDeg + (lngMin / 60) + (lngSec / 3600);
                 if (lngDir === 'W' || lngDir === 'O') lngDec = -lngDec;
 
-                // Generar URL con t=k para vista Satelital
                 return `https://www.google.com/maps?q=${latDec.toFixed(6)},${lngDec.toFixed(6)}&t=k`;
             } catch (e) {
                 console.error("Error convirtiendo coordenada:", e);
@@ -504,8 +499,9 @@
                 let cantidad = parseFloat(row["Cantidad"]) || 1;
                 let unidad = row["Unidad"] || "und";
                 let capitulo = row["Capítulo"] || "GENERAL";
+                
+                // Mapear el nombre de la Partida oficial
                 let partidaOficial = row["Partida"] || row["Descripción de la partida"] || row["Componente inspeccionado"] || codigo;
-                let descripcionHallazgo = row["Componente inspeccionado"] || row["Hallazgo detectado"] || "-";
                 let rawUbicacion = row["Ubicación (coordenadas)"] || row["Ubicación"] || "";
 
                 if (prioridad === "alta") cntAlta++;
@@ -548,7 +544,7 @@
                     <td class="text-center"><b>${codigo}</b></td>
                     <td>${estacion}</td>
                     <td>${row["Equipo / Sistema"] || "-"}</td>
-                    <td>${descripcionHallazgo}</td>
+                    <td>${partidaOficial}</td>
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
                     <td class="text-center">${btnUbicacion}</td>
