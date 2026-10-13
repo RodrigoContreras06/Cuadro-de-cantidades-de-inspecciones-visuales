@@ -84,19 +84,19 @@
         <div class="col-md-3 col-sm-6">
             <div class="card-kpi">
                 <div class="kpi-title">Total Hallazgos Reportados</div>
-                <div class="kpi-value" id="valTotalHallazgos">65</div>
+                <div class="kpi-value" id="valTotalHallazgos">0</div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
             <div class="card-kpi alta">
                 <div class="kpi-title">Hallazgos Prioridad Alta</div>
-                <div class="kpi-value text-danger" id="valAlta">26</div>
+                <div class="kpi-value text-danger" id="valAlta">0</div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
             <div class="card-kpi media">
                 <div class="kpi-title">Equipos Inspeccionados</div>
-                <div class="kpi-value text-warning" id="valEquipos">8</div>
+                <div class="kpi-value text-warning" id="valEquipos">0</div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
@@ -149,45 +149,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>C-L&T-126</td>
-                                <td>Recubrimiento</td>
-                                <td>Aplicación manual de recubrimiento en estructuras aéreas</td>
-                                <td>m²</td>
-                                <td>0.60</td>
-                                <td>-</td>
-                                <td>75.00</td>
-                                <td>22.56</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td><span class="badge bg-danger">25</span></td>
-                            </tr>
-                            <tr>
-                                <td>C-L&T-120</td>
-                                <td>Limpieza</td>
-                                <td>Preparación de superficie metálica manual mecánica</td>
-                                <td>m²</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>25.54</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td><span class="badge bg-success">3</span></td>
-                            </tr>
-                            <tr>
-                                <td>C-L&T-048</td>
-                                <td>Mecánica</td>
-                                <td>Cambio de empaque en unión bridada</td>
-                                <td>und</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>1.00</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td><span class="badge bg-danger">1</span></td>
-                            </tr>
+                            <!-- Los datos se llenarán automáticamente desde Google Sheets -->
                         </tbody>
                     </table>
                 </div>
@@ -195,42 +157,121 @@
         </div>
     </div>
 
-    <!-- Scripts de Gráficos e Interactividad -->
+    <!-- Script de Conexión y Renderizado Dinámico -->
     <script>
-        // Gráfico de Barras por las 6 Estaciones
-        const ctxEstaciones = document.getElementById('graficoEstaciones').getContext('2d');
-        new Chart(ctxEstaciones, {
-            type: 'bar',
-            data: {
-                labels: ['Lizama', 'Chimita', 'Sebastopol', 'Vasconia', 'Galán', 'Santa Rosa'],
-                datasets: [{
-                    label: 'Hallazgos reportados',
-                    data: [3, 0, 5, 22, 0, 35],
-                    backgroundColor: '#1b365d',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } }
-            }
+        const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbwd986MvkhS_zEIF8hhEwSrigSHZWNL5OzrjqIMlIxwIHOqOoh6NgJdc3E1mlOUWqmT/exec";
+
+        let graficoBarras, graficoDoughnut;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            cargarDatosDesdeSheets();
         });
 
-        // Gráfico Circular de Prioridades
-        const ctxPrioridad = document.getElementById('graficoPrioridad').getContext('2d');
-        new Chart(ctxPrioridad, {
-            type: 'doughnut',
-            data: {
-                labels: ['Alta', 'Media', 'Baja'],
-                datasets: [{
-                    data: [26, 15, 24],
-                    backgroundColor: ['#dc3545', '#ffc107', '#198754']
-                }]
-            },
-            options: {
-                responsive: true
+        async function cargarDatosDesdeSheets() {
+            try {
+                const respuesta = await fetch(URL_API_GOOGLE_SHEETS);
+                const datos = await respuesta.json();
+                
+                if (datos && datos.length > 0) {
+                    procesarYRenderizarDashboard(datos);
+                }
+            } catch (error) {
+                console.error("Error cargando los datos desde Google Sheets:", error);
             }
-        });
+        }
+
+        function procesarYRenderizarDashboard(datos) {
+            let totalHallazgos = datos.length;
+            let cntAlta = 0, cntMedia = 0, cntBaja = 0;
+            const equiposUnicos = new Set();
+            
+            const conteoEstaciones = {
+                "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0
+            };
+
+            const tablaBody = document.querySelector("#tablaConsolidada tbody");
+            tablaBody.innerHTML = "";
+
+            datos.forEach(row => {
+                let estacion = row["Estación"] || "";
+                let prioridad = (row["Prioridad"] || "").toLowerCase();
+                let equipo = row["Equipo / Sistema"] || "";
+                
+                if (equipo) equiposUnicos.add(equipo);
+                
+                if (prioridad === "alta") cntAlta++;
+                else if (prioridad === "media") cntMedia++;
+                else if (prioridad === "baja") cntBaja++;
+
+                // Mapear estaciones oficiales
+                Object.keys(conteoEstaciones).forEach(est => {
+                    if (estacion.toLowerCase().includes(est.toLowerCase())) {
+                        conteoEstaciones[est]++;
+                    }
+                });
+
+                // Llenar filas dinámicamente
+                let tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><b>${row["Código partida"] || row["ID"] || "-"}</b></td>
+                    <td>${row["Capítulo"] || "-"}</td>
+                    <td>${row["Componente inspeccionado"] || row["Hallazgo detectado"] || "-"}</td>
+                    <td>${row["Unidad"] || "und"}</td>
+                    <td>${estacion.includes("Lizama") ? (row["Cantidad"] || 1) : "-"}</td>
+                    <td>${estacion.includes("Chimita") ? (row["Cantidad"] || 1) : "-"}</td>
+                    <td>${estacion.includes("Sebastopol") ? (row["Cantidad"] || 1) : "-"}</td>
+                    <td>${estacion.includes("Vasconia") ? (row["Cantidad"] || 1) : "-"}</td>
+                    <td>${estacion.includes("Galán") ? (row["Cantidad"] || 1) : "-"}</td>
+                    <td>${estacion.includes("Santa Rosa") ? (row["Cantidad"] || 1) : "-"}</td>
+                    <td><span class="badge ${prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success'}">${row["Cantidad"] || 1}</span></td>
+                `;
+                tablaBody.appendChild(tr);
+            });
+
+            // Actualizar KPIs superiores
+            document.getElementById("valTotalHallazgos").innerText = totalHallazgos;
+            document.getElementById("valAlta").innerText = cntAlta;
+            document.getElementById("valEquipos").innerText = equiposUnicos.size;
+
+            // Renderizar Gráficos dinámicos
+            renderizarGraficos(conteoEstaciones, cntAlta, cntMedia, cntBaja);
+        }
+
+        function renderizarGraficos(estaciones, alta, media, baja) {
+            // Gráfico de Barras por Estación
+            const ctxEstaciones = document.getElementById('graficoEstaciones').getContext('2d');
+            if (graficoBarras) graficoBarras.destroy();
+            
+            graficoBarras = new Chart(ctxEstaciones, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(estaciones),
+                    datasets: [{
+                        label: 'Hallazgos reportados',
+                        data: Object.values(estaciones),
+                        backgroundColor: '#1b365d',
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            // Gráfico Circular de Prioridades
+            const ctxPrioridad = document.getElementById('graficoPrioridad').getContext('2d');
+            if (graficoDoughnut) graficoDoughnut.destroy();
+            
+            graficoDoughnut = new Chart(ctxPrioridad, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Alta', 'Media', 'Baja'],
+                    datasets: [{
+                        data: [alta, media, baja],
+                        backgroundColor: ['#dc3545', '#ffc107', '#198754']
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
 
         // Buscador dinámico en tabla
         document.getElementById('buscadorTabla').addEventListener('keyup', function() {
