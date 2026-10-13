@@ -3,153 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Inspecciones Visuales de Integridad | Confipetrol</title>
+    <title>Inspecciones Visuales de Integridad | Confipetrol</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js para gráficos -->
+    <!-- Chart.js + Plugin DataLabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #ffffff;
+            --primary-blue: #1e3a8a;
+            --accent-orange: #f97316;
+        }
         body {
-            background-color: #0d1b2a;
-            color: #f8f9fa;
+            background-color: var(--bg-dark);
+            color: #f8fafc;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .header-logo {
-            background-color: #ffffff;
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .card-kpi {
-            background: #ffffff;
-            color: #212529;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-            margin-bottom: 15px;
-            border-top: 4px solid #1b365d;
-        }
-        .card-kpi.alta { border-top-color: #dc3545; }
-        .card-kpi.media { border-top-color: #ffc107; }
-        .card-kpi.baja { border-top-color: #198754; }
         
+        /* Encabezado con Logo Destacado */
+        .header-panel {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            border-left: 8px solid var(--accent-orange);
+        }
+        .brand-logo {
+            max-height: 65px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.15));
+        }
+
+        /* Tarjetas KPI Interactivas */
+        .kpi-card {
+            background: #ffffff;
+            color: #1e293b;
+            border-radius: 12px;
+            padding: 18px 15px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+        }
+        .kpi-card.active {
+            border-color: #2563eb;
+            background-color: #f0fdf4;
+        }
+        .kpi-card.alta { border-top: 5px solid #dc2626; }
+        .kpi-card.media { border-top: 5px solid #d97706; }
+        .kpi-card.baja { border-top: 5px solid #16a34a; }
+        .kpi-card.total { border-top: 5px solid #1e3a8a; }
+
         .kpi-title {
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             font-weight: 700;
             text-transform: uppercase;
-            color: #6c757d;
+            color: #64748b;
+            letter-spacing: 0.5px;
         }
         .kpi-value {
-            font-size: 1.8rem;
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-top: 5px;
+        }
+
+        /* Contenedores de Filtros, Gráficos y Tablas */
+        .panel-box {
+            background: #ffffff;
+            color: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+        }
+        
+        .filter-label {
+            font-size: 0.82rem;
             font-weight: 700;
-            color: #1b365d;
+            color: #475569;
+            margin-bottom: 4px;
         }
-        .chart-container {
-            background: #ffffff;
-            color: #212529;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+        .chart-wrapper {
+            position: relative;
+            height: 280px;
+            width: 100%;
         }
-        .table-section {
-            background: #ffffff;
-            color: #212529;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+        /* Tabla estilizada */
+        .table-custom th {
+            background-color: var(--primary-blue) !important;
+            color: #ffffff !important;
+            font-size: 0.88rem;
+            text-transform: uppercase;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 0.9rem;
         }
     </style>
 </head>
-<body class="container-fluid py-4">
+<body class="container-fluid px-4 py-4">
 
-    <!-- Encabezado con Logo -->
+    <!-- Encabezado con Logo Destacado -->
     <div class="row">
         <div class="col-12">
-            <div class="header-logo d-flex justify-content-between align-items-center">
+            <div class="header-panel d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <img src="./logo.png.png" alt="Logo Confipetrol" style="max-height: 50px; width: auto;">
+                    <img src="./logo.png.png" alt="Logo Confipetrol" class="brand-logo">
                 </div>
-                <h4 class="text-secondary m-0 fw-bold">DASHBOARD INSPECCIONES VISUALES DE INTEGRIDAD</h4>
+                <div class="text-end">
+                    <h3 class="m-0 fw-bold text-dark" style="color: var(--primary-blue) !important;">INSPECCIONES VISUALES DE INTEGRIDAD</h3>
+                    <span class="badge bg-secondary">Control y Seguimiento de Campo</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Tarjetas KPI Superiores -->
+    <!-- Panel de Filtros Interactivos -->
     <div class="row">
+        <div class="col-12">
+            <div class="panel-box py-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2 col-sm-6">
+                        <label class="filter-label"><i class="fa-solid fa-location-dot"></i> Estación</label>
+                        <select id="filtroEstacion" class="form-select form-select-sm" onchange="aplicarFiltros()">
+                            <option value="">Todas las estaciones</option>
+                            <option value="Lizama">Lizama</option>
+                            <option value="Chimita">Chimita</option>
+                            <option value="Sebastopol">Sebastopol</option>
+                            <option value="Vasconia">Vasconia</option>
+                            <option value="Galán">Galán</option>
+                            <option value="Santa Rosa">Santa Rosa</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="filter-label"><i class="fa-solid fa-triangle-exclamation"></i> Prioridad</label>
+                        <select id="filtroPrioridad" class="form-select form-select-sm" onchange="aplicarFiltros()">
+                            <option value="">Todas las prioridades</option>
+                            <option value="alta">Alta 🔴</option>
+                            <option value="media">Media 🟡</option>
+                            <option value="baja">Baja 🟢</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="filter-label"><i class="fa-solid fa-barcode"></i> Código Partida</label>
+                        <select id="filtroCodigo" class="form-select form-select-sm" onchange="aplicarFiltros()">
+                            <option value="">Todos los códigos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="filter-label"><i class="fa-solid fa-calendar-day"></i> Fecha Desde</label>
+                        <input type="date" id="fechaDesde" class="form-control form-control-sm" onchange="aplicarFiltros()">
+                    </div>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="filter-label"><i class="fa-solid fa-calendar-check"></i> Fecha Hasta</label>
+                        <input type="date" id="fechaHasta" class="form-control form-control-sm" onchange="aplicarFiltros()">
+                    </div>
+                    <div class="col-md-2 col-sm-12 text-end">
+                        <button class="btn btn-sm btn-outline-danger w-100" onclick="limpiarFiltros()"><i class="fa-solid fa-rotate-left"></i> Limpiar Filtros</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjetas KPI Interactivas Simétricas -->
+    <div class="row g-3 mb-4">
         <div class="col-md-3 col-sm-6">
-            <div class="card-kpi">
-                <div class="kpi-title">Total Hallazgos Reportados</div>
-                <div class="kpi-value" id="valTotalHallazgos">0</div>
+            <div class="kpi-card total" onclick="filtrarPorCardPrioridad('')">
+                <div class="kpi-title">Total Hallazgos</div>
+                <div class="kpi-value text-primary" id="valTotalHallazgos">0</div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
-            <div class="card-kpi alta">
-                <div class="kpi-title">Hallazgos Prioridad Alta</div>
+            <div class="kpi-card alta" onclick="filtrarPorCardPrioridad('alta')">
+                <div class="kpi-title">Prioridad Alta 🔴</div>
                 <div class="kpi-value text-danger" id="valAlta">0</div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
-            <div class="card-kpi media">
-                <div class="kpi-title">Equipos Inspeccionados</div>
-                <div class="kpi-value text-warning" id="valEquipos">0</div>
+            <div class="kpi-card media" onclick="filtrarPorCardPrioridad('media')">
+                <div class="kpi-title">Prioridad Media 🟡</div>
+                <div class="kpi-value text-warning" id="valMedia">0</div>
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
-            <div class="card-kpi baja">
-                <div class="kpi-title">Estaciones Activas</div>
-                <div class="kpi-value text-success">6</div>
+            <div class="kpi-card baja" onclick="filtrarPorCardPrioridad('baja')">
+                <div class="kpi-title">Prioridad Baja 🟢</div>
+                <div class="kpi-value text-success" id="valBaja">0</div>
             </div>
         </div>
     </div>
 
-    <!-- Sección de Gráficos -->
-    <div class="row">
-        <div class="col-lg-7">
-            <div class="chart-container">
-                <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-bar"></i> Hallazgos por Estación</h5>
-                <canvas id="graficoEstaciones" height="130"></canvas>
+    <!-- Sección Simétrica de Gráficos con Datos Visibles -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7 col-md-12">
+            <div class="panel-box h-100">
+                <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-bar"></i> Hallazgos por Estación Operativa</h6>
+                <div class="chart-wrapper">
+                    <canvas id="graficoEstaciones"></canvas>
+                </div>
             </div>
         </div>
-        <div class="col-lg-5">
-            <div class="chart-container">
-                <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie"></i> Distribución por Prioridad</h5>
-                <canvas id="graficoPrioridad" height="130"></canvas>
+        <div class="col-lg-5 col-md-12">
+            <div class="panel-box h-100">
+                <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie"></i> Distribución Porcentual por Prioridad</h6>
+                <div class="chart-wrapper">
+                    <canvas id="graficoPrioridad"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Tabla Interactiva Inferior -->
+    <!-- Tabla Interactiva Consolidada -->
     <div class="row">
         <div class="col-12">
-            <div class="table-section">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-table"></i> Cuadro Consolidado de Actividades</h5>
-                    <input type="text" id="buscadorTabla" class="form-control w-25" placeholder="Buscar por código, actividad o estación...">
+            <div class="panel-box">
+                <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 gap-2">
+                    <h6 class="fw-bold text-primary m-0"><i class="fa-solid fa-table"></i> Registros de Inspecciones en Campo</h6>
+                    <input type="text" id="buscadorTabla" class="form-control form-control-sm w-auto" style="min-width: 280px;" placeholder="🔍 Buscar texto libre..." onkeyup="aplicarFiltros()">
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle" id="tablaConsolidada">
-                        <thead class="table-dark">
+                    <table class="table table-striped table-hover table-custom align-middle" id="tablaConsolidada">
+                        <thead>
                             <tr>
                                 <th>Código</th>
-                                <th>Capítulo</th>
-                                <th>Descripción de la actividad</th>
-                                <th>Unidad</th>
-                                <th>Lizama</th>
-                                <th>Chimita</th>
-                                <th>Sebastopol</th>
-                                <th>Vasconia</th>
-                                <th>Galán</th>
-                                <th>Santa Rosa</th>
-                                <th>Total Hallazgos</th>
+                                <th>Estación</th>
+                                <th>Equipo / Sistema</th>
+                                <th>Componente / Hallazgo</th>
+                                <th>Prioridad</th>
+                                <th>Cantidad</th>
+                                <th>Fecha</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Los datos se llenarán automáticamente desde Google Sheets -->
+                            <!-- Se llena dinámicamente -->
                         </tbody>
                     </table>
                 </div>
@@ -157,10 +261,14 @@
         </div>
     </div>
 
-    <!-- Script de Conexión y Renderizado Dinámico -->
+    <!-- Lógica de Conexión y Filtros -->
     <script>
+        // Registrar plugin de etiquetas visibles en Chart.js
+        Chart.register(ChartDataLabels);
+
         const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbwd986MvkhS_zEIF8hhEwSrigSHZWNL5OzrjqIMlIxwIHOqOoh6NgJdc3E1mlOUWqmT/exec";
 
+        let datosGlobales = [];
         let graficoBarras, graficoDoughnut;
 
         document.addEventListener("DOMContentLoaded", function() {
@@ -170,21 +278,94 @@
         async function cargarDatosDesdeSheets() {
             try {
                 const respuesta = await fetch(URL_API_GOOGLE_SHEETS);
-                const datos = await respuesta.json();
+                datosGlobales = await respuesta.json();
                 
-                if (datos && datos.length > 0) {
-                    procesarYRenderizarDashboard(datos);
+                if (datosGlobales && datosGlobales.length > 0) {
+                    poblarSelectCodigos(datosGlobales);
+                    aplicarFiltros();
                 }
             } catch (error) {
-                console.error("Error cargando los datos desde Google Sheets:", error);
+                console.error("Error al conectar con Google Sheets:", error);
             }
         }
 
-        function procesarYRenderizarDashboard(datos) {
-            let totalHallazgos = datos.length;
-            let cntAlta = 0, cntMedia = 0, cntBaja = 0;
-            const equiposUnicos = new Set();
+        function poblarSelectCodigos(datos) {
+            const selectCod = document.getElementById("filtroCodigo");
+            const codigosUnicos = new Set();
             
+            datos.forEach(d => {
+                let cod = d["Código partida"] || d["Código"] || "";
+                if (cod) codigosUnicos.add(cod);
+            });
+            
+            selectCod.innerHTML = '<option value="">Todos los códigos</option>';
+            Array.from(codigosUnicos).sort().forEach(c => {
+                selectCod.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+        }
+
+        function filtrarPorCardPrioridad(prio) {
+            document.getElementById("filtroPrioridad").value = prio;
+            aplicarFiltros();
+        }
+
+        function limpiarFiltros() {
+            document.getElementById("filtroEstacion").value = "";
+            document.getElementById("filtroPrioridad").value = "";
+            document.getElementById("filtroCodigo").value = "";
+            document.getElementById("fechaDesde").value = "";
+            document.getElementById("fechaHasta").value = "";
+            document.getElementById("buscadorTabla").value = "";
+            aplicarFiltros();
+        }
+
+        function aplicarFiltros() {
+            const fEstacion = document.getElementById("filtroEstacion").value.toLowerCase();
+            const fPrioridad = document.getElementById("filtroPrioridad").value.toLowerCase();
+            const fCodigo = document.getElementById("filtroCodigo").value.toLowerCase();
+            const fDesde = document.getElementById("fechaDesde").value;
+            const fHasta = document.getElementById("fechaHasta").value;
+            const fTexto = document.getElementById("buscadorTabla").value.toLowerCase();
+
+            const datosFiltrados = datosGlobales.filter(item => {
+                let estacion = (item["Estación"] || "").toLowerCase();
+                let prioridad = (item["Prioridad"] || "").toLowerCase();
+                let codigo = (item["Código partida"] || item["Código"] || "").toLowerCase();
+                let fechaStr = item["Fecha inspección"] || item["Fecha"] || "";
+                let textoFila = JSON.stringify(item).toLowerCase();
+
+                // Filtro Estación
+                if (fEstacion && !estacion.includes(fEstacion)) return false;
+                
+                // Filtro Prioridad
+                if (fPrioridad && prioridad !== fPrioridad) return false;
+                
+                // Filtro Código
+                if (fCodigo && codigo !== fCodigo) return false;
+                
+                // Filtro Texto
+                if (fTexto && !textoFila.includes(fTexto)) return false;
+
+                // Filtro Fechas (asumiendo formato DD/MM/YYYY)
+                if (fDesde || fHasta) {
+                    if (fechaStr) {
+                        const partes = fechaStr.split('/');
+                        if (partes.length === 3) {
+                            const fechaObj = new Date(partes[2], partes[1] - 1, partes[0]);
+                            if (fDesde && fechaObj < new Date(fDesde)) return false;
+                            if (fHasta && fechaObj > new Date(fHasta)) return false;
+                        }
+                    }
+                }
+
+                return true;
+            });
+
+            renderizarDashboard(datosFiltrados);
+        }
+
+        function renderizarDashboard(datos) {
+            let cntAlta = 0, cntMedia = 0, cntBaja = 0;
             const conteoEstaciones = {
                 "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0
             };
@@ -195,50 +376,44 @@
             datos.forEach(row => {
                 let estacion = row["Estación"] || "";
                 let prioridad = (row["Prioridad"] || "").toLowerCase();
-                let equipo = row["Equipo / Sistema"] || "";
-                
-                if (equipo) equiposUnicos.add(equipo);
                 
                 if (prioridad === "alta") cntAlta++;
                 else if (prioridad === "media") cntMedia++;
                 else if (prioridad === "baja") cntBaja++;
 
-                // Mapear estaciones oficiales
                 Object.keys(conteoEstaciones).forEach(est => {
                     if (estacion.toLowerCase().includes(est.toLowerCase())) {
                         conteoEstaciones[est]++;
                     }
                 });
 
-                // Llenar filas dinámicamente
+                let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
+
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td><b>${row["Código partida"] || row["ID"] || "-"}</b></td>
-                    <td>${row["Capítulo"] || "-"}</td>
+                    <td>${estacion}</td>
+                    <td>${row["Equipo / Sistema"] || "-"}</td>
                     <td>${row["Componente inspeccionado"] || row["Hallazgo detectado"] || "-"}</td>
-                    <td>${row["Unidad"] || "und"}</td>
-                    <td>${estacion.includes("Lizama") ? (row["Cantidad"] || 1) : "-"}</td>
-                    <td>${estacion.includes("Chimita") ? (row["Cantidad"] || 1) : "-"}</td>
-                    <td>${estacion.includes("Sebastopol") ? (row["Cantidad"] || 1) : "-"}</td>
-                    <td>${estacion.includes("Vasconia") ? (row["Cantidad"] || 1) : "-"}</td>
-                    <td>${estacion.includes("Galán") ? (row["Cantidad"] || 1) : "-"}</td>
-                    <td>${estacion.includes("Santa Rosa") ? (row["Cantidad"] || 1) : "-"}</td>
-                    <td><span class="badge ${prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success'}">${row["Cantidad"] || 1}</span></td>
+                    <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
+                    <td class="text-center fw-bold">${row["Cantidad"] || 1} ${row["Unidad"] || ""}</td>
+                    <td class="text-center">${row["Fecha inspección"] || "-"}</td>
                 `;
                 tablaBody.appendChild(tr);
             });
 
-            // Actualizar KPIs superiores
-            document.getElementById("valTotalHallazgos").innerText = totalHallazgos;
+            // Actualizar tarjetas KPI
+            document.getElementById("valTotalHallazgos").innerText = datos.length;
             document.getElementById("valAlta").innerText = cntAlta;
-            document.getElementById("valEquipos").innerText = equiposUnicos.size;
+            document.getElementById("valMedia").innerText = cntMedia;
+            document.getElementById("valBaja").innerText = cntBaja;
 
-            // Renderizar Gráficos dinámicos
+            // Renderizar Gráficos
             renderizarGraficos(conteoEstaciones, cntAlta, cntMedia, cntBaja);
         }
 
         function renderizarGraficos(estaciones, alta, media, baja) {
-            // Gráfico de Barras por Estación
+            // Gráfico de Barras con Números Visibles
             const ctxEstaciones = document.getElementById('graficoEstaciones').getContext('2d');
             if (graficoBarras) graficoBarras.destroy();
             
@@ -247,16 +422,32 @@
                 data: {
                     labels: Object.keys(estaciones),
                     datasets: [{
-                        label: 'Hallazgos reportados',
+                        label: 'Cantidad de Hallazgos',
                         data: Object.values(estaciones),
-                        backgroundColor: '#1b365d',
-                        borderRadius: 4
+                        backgroundColor: '#1e3a8a',
+                        borderRadius: 6
                     }]
                 },
-                options: { responsive: true, plugins: { legend: { display: false } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            color: '#1e293b',
+                            font: { weight: 'bold', size: 12 },
+                            formatter: function(value) { return value > 0 ? value : ''; }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grace: '15%' }
+                    }
+                }
             });
 
-            // Gráfico Circular de Prioridades
+            // Gráfico Circular con Porcentajes / Datos Visibles
             const ctxPrioridad = document.getElementById('graficoPrioridad').getContext('2d');
             if (graficoDoughnut) graficoDoughnut.destroy();
             
@@ -266,22 +457,23 @@
                     labels: ['Alta', 'Media', 'Baja'],
                     datasets: [{
                         data: [alta, media, baja],
-                        backgroundColor: ['#dc3545', '#ffc107', '#198754']
+                        backgroundColor: ['#dc2626', '#d97706', '#16a34a']
                     }]
                 },
-                options: { responsive: true }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        datalabels: {
+                            color: '#ffffff',
+                            font: { weight: 'bold', size: 13 },
+                            formatter: function(value) { return value > 0 ? value : ''; }
+                        }
+                    }
+                }
             });
         }
-
-        // Buscador dinámico en tabla
-        document.getElementById('buscadorTabla').addEventListener('keyup', function() {
-            let filtro = this.value.toLowerCase();
-            let filas = document.querySelectorAll('#tablaConsolidada tbody tr');
-            filas.forEach(fila => {
-                let texto = fila.textContent.toLowerCase();
-                fila.style.display = texto.includes(filtro) ? '' : 'none';
-            });
-        });
     </script>
 </body>
 </html>
