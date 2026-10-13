@@ -244,7 +244,7 @@
         </div>
     </div>
 
-    <!-- CUADRO DE TOTALES Y VALORIZACIÓN POR ESTACIÓN Y CÓDIGO (NUEVO) -->
+    <!-- CUADRO DE TOTALES Y VALORIZACIÓN POR ESTACIÓN Y CÓDIGO -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="panel-box border-top border-4 border-success">
@@ -275,7 +275,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Se llena dinámicamente agrupando cantidades por estación -->
+                            <!-- Se llena dinámicamente -->
                         </tbody>
                         <tfoot>
                             <tr class="table-dark fw-bold fs-6">
@@ -335,7 +335,7 @@
         const URL_API_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbwd986MvkhS_zEIF8hhEwSrigSHZWNL5OzrjqIMlIxwIHOqOoh6NgJdc3E1mlOUWqmT/exec";
 
         let datosGlobales = [];
-        let preciosUnitariosGuardados = {}; // Guardar precios ingresados
+        let preciosUnitariosGuardados = {}; 
         let graficoBarras, graficoDoughnut;
 
         const estacionesOficiales = ["Lizama", "Chimita", "Sebastopol", "Vasconia", "Galán", "Santa Rosa"];
@@ -432,7 +432,6 @@
             const tablaBody = document.querySelector("#tablaConsolidada tbody");
             tablaBody.innerHTML = "";
 
-            // Agrupador para la tabla de valorización por CÓDIGO
             const agrupadoCodigo = {};
 
             datos.forEach(row => {
@@ -448,14 +447,12 @@
                 else if (prioridad === "media") cntMedia++;
                 else if (prioridad === "baja") cntBaja++;
 
-                // Conteo por estación
                 estacionesOficiales.forEach(est => {
                     if (estacion.toLowerCase().includes(est.toLowerCase())) {
                         conteoEstaciones[est]++;
                     }
                 });
 
-                // Agrupación de Cantidades por Código
                 if (!agrupadoCodigo[codigo]) {
                     agrupadoCodigo[codigo] = {
                         codigo: codigo,
@@ -474,7 +471,6 @@
                 });
                 agrupadoCodigo[codigo].numHallazgos++;
 
-                // Llenar tabla cruda
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
@@ -489,15 +485,11 @@
                 tablaBody.appendChild(tr);
             });
 
-            // Actualizar KPIs
             document.getElementById("valTotalHallazgos").innerText = datos.length;
             document.getElementById("valAlta").innerText = cntAlta;
             document.getElementById("valMedia").innerText = cntMedia;
 
-            // Renderizar Cuadro Consolidado Financiero por Código / Estación
             renderizarCuadroValorizacion(agrupadoCodigo);
-
-            // Renderizar Gráficos
             renderizarGraficos(conteoEstaciones, cntAlta, cntMedia, cntBaja);
         }
 
@@ -506,7 +498,6 @@
             tbodyVal.innerHTML = "";
 
             let sumEstaciones = { "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0 };
-            let sumCantidadGlobal = 0;
             let sumHallazgosGlobal = 0;
 
             for (const cod in agrupado) {
@@ -518,10 +509,8 @@
                     sumEstaciones[e] += item.cantidades[e];
                 });
 
-                sumCantidadGlobal += sumaCantFila;
                 sumHallazgosGlobal += item.numHallazgos;
 
-                // Precio guardado o por defecto 0
                 let precioUnit = preciosUnitariosGuardados[cod] || 0;
                 let valorTotalFila = sumaCantFila * precioUnit;
 
@@ -547,14 +536,14 @@
                 tbodyVal.appendChild(tr);
             }
 
-            // Actualizar Totales del Pie de Tabla
-            document.getElementById("totLizama").innerText = sumEstaciones["Lizama"].toFixed(1);
-            document.getElementById("totChimita").innerText = sumEstaciones["Chimita"].toFixed(1);
-            document.getElementById("totSebastopol").innerText = sumEstaciones["Sebastopol"].toFixed(1);
-            document.getElementById("totVasconia").innerText = sumEstaciones["Vasconia"].toFixed(1);
-            document.getElementById("totGalan").innerText = sumEstaciones["Galán"].toFixed(1);
-            document.getElementById("totSantaRosa").innerText = sumEstaciones["Santa Rosa"].toFixed(1);
-            document.getElementById("totCantidadGlobal").innerText = sumCantidadGlobal.toFixed(2);
+            document.getElementById("totLizama").innerText = sumEstaciones["Lizama"] > 0 ? sumEstaciones["Lizama"].toFixed(2) : "-";
+            document.getElementById("totChimita").innerText = sumEstaciones["Chimita"] > 0 ? sumEstaciones["Chimita"].toFixed(2) : "-";
+            document.getElementById("totSebastopol").innerText = sumEstaciones["Sebastopol"] > 0 ? sumEstaciones["Sebastopol"].toFixed(2) : "-";
+            document.getElementById("totVasconia").innerText = sumEstaciones["Vasconia"] > 0 ? sumEstaciones["Vasconia"].toFixed(2) : "-";
+            document.getElementById("totGalan").innerText = sumEstaciones["Galán"] > 0 ? sumEstaciones["Galán"].toFixed(2) : "-";
+            document.getElementById("totSantaRosa").innerText = sumEstaciones["Santa Rosa"] > 0 ? sumEstaciones["Santa Rosa"].toFixed(2) : "-";
+            
+            document.getElementById("totCantidadGlobal").innerText = "-"; 
             document.getElementById("totHallazgosGlobal").innerText = sumHallazgosGlobal;
 
             recalcularMontoGlobal();
@@ -568,7 +557,6 @@
         function recalcularMontoGlobal() {
             let totalMonto = 0;
             for (const cod in preciosUnitariosGuardados) {
-                // Sumar según filas visibles
                 const elemVal = document.getElementById(`valTotal_${cod}`);
                 if (elemVal) {
                     let numVal = parseFloat(elemVal.innerText.replace(/[^0-9.-]+/g,"")) || 0;
