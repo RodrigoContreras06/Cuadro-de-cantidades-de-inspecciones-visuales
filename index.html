@@ -244,14 +244,14 @@
         </div>
     </div>
 
-    <!-- CUADRO DE TOTALES Y VALORIZACIÓN POR ESTACIÓN Y CÓDIGO -->
+    <!-- CUADRO DE TOTALES Y VALORIZACIÓN POR ESTACIÓN Y CÓDIGO (PARTIDA) -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="panel-box border-top border-4 border-success">
                 <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 gap-2">
                     <div>
                         <h5 class="fw-bold text-success m-0"><i class="fa-solid fa-file-invoice-dollar"></i> Cuadro de Consolidación Financiera y Cantidades por Estación</h5>
-                        <small class="text-muted">Suma acumulada de cantidades agrupadas por Estación y Código de Partida para cotizaciones y propuestas económicas.</small>
+                        <small class="text-muted">Suma acumulada de cantidades agrupadas por Estación y Partida oficial del catálogo para propuestas económicas.</small>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -260,7 +260,7 @@
                             <tr>
                                 <th>Código</th>
                                 <th>Capítulo</th>
-                                <th>Descripción Actividad</th>
+                                <th>Partida (Catálogo)</th>
                                 <th>Unidad</th>
                                 <th>Lizama</th>
                                 <th>Chimita</th>
@@ -336,7 +336,7 @@
 
         let datosGlobales = [];
         let preciosUnitariosGuardados = {}; 
-        let ultimoAgrupadoGlobal = {}; // Referencia limpia para cálculo monetario seguro
+        let ultimoAgrupadoGlobal = {}; 
         let graficoBarras, graficoDoughnut;
 
         const estacionesOficiales = ["Lizama", "Chimita", "Sebastopol", "Vasconia", "Galán", "Santa Rosa"];
@@ -442,7 +442,10 @@
                 let cantidad = parseFloat(row["Cantidad"]) || 1;
                 let unidad = row["Unidad"] || "und";
                 let capitulo = row["Capítulo"] || "GENERAL";
-                let descripcion = row["Componente inspeccionado"] || row["Partida"] || row["Hallazgo detectado"] || codigo;
+                
+                // Tomamos específicamente la columna Partida oficial del catálogo para el cuadro consolidado
+                let partidaOficial = row["Partida"] || row["Descripción de la partida"] || row["Componente inspeccionado"] || codigo;
+                let descripcionHallazgo = row["Componente inspeccionado"] || row["Hallazgo detectado"] || "-";
 
                 if (prioridad === "alta") cntAlta++;
                 else if (prioridad === "media") cntMedia++;
@@ -458,7 +461,7 @@
                     agrupadoCodigo[codigo] = {
                         codigo: codigo,
                         capitulo: capitulo,
-                        descripcion: descripcion,
+                        partida: partidaOficial, // Guardamos la partida oficial
                         unidad: unidad,
                         cantidades: { "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0 },
                         numHallazgos: 0
@@ -478,7 +481,7 @@
                     <td><b>${codigo}</b></td>
                     <td>${estacion}</td>
                     <td>${row["Equipo / Sistema"] || "-"}</td>
-                    <td>${descripcion}</td>
+                    <td>${descripcionHallazgo}</td>
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
                     <td class="text-center">${row["Fecha inspección"] || "-"}</td>
@@ -486,7 +489,7 @@
                 tablaBody.appendChild(tr);
             });
 
-            ultimoAgrupadoGlobal = agrupadoCodigo; // Guardamos referencia limpia
+            ultimoAgrupadoGlobal = agrupadoCodigo; 
 
             document.getElementById("valTotalHallazgos").innerText = datos.length;
             document.getElementById("valAlta").innerText = cntAlta;
@@ -521,7 +524,7 @@
                 tr.innerHTML = `
                     <td><b>${item.codigo}</b></td>
                     <td><small>${item.capitulo}</small></td>
-                    <td>${item.descripcion}</td>
+                    <td><b>${item.partida}</b></td> <!-- Mostramos la partida oficial -->
                     <td class="text-center"><span class="badge bg-light text-dark border">${item.unidad}</span></td>
                     <td class="text-center">${item.cantidades["Lizama"] > 0 ? item.cantidades["Lizama"].toFixed(2) : "-"}</td>
                     <td class="text-center">${item.cantidades["Chimita"] > 0 ? item.cantidades["Chimita"].toFixed(2) : "-"}</td>
@@ -554,13 +557,11 @@
 
         function actualizarPrecio(codigo, valor) {
             preciosUnitariosGuardados[codigo] = parseFloat(valor) || 0;
-            // Re-renderizamos manteniendo los filtros actuales recalculando con la referencia limpia
             aplicarFiltros();
         }
 
         function recalcularMontoGlobal() {
             let totalMonto = 0;
-            // Cálculo monetario seguro directamente desde los datos agrupados en memoria
             for (const cod in ultimoAgrupadoGlobal) {
                 let item = ultimoAgrupadoGlobal[cod];
                 let sumaCantFila = 0;
