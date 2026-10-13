@@ -18,9 +18,8 @@
         }
         .header-logo {
             background-color: #ffffff;
-            padding: 15px;
+            padding: 12px 20px;
             border-radius: 8px;
-            text-align: center;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
@@ -68,12 +67,14 @@
 </head>
 <body class="container-fluid py-4">
 
-    <!-- Encabezado -->
+    <!-- Encabezado con Logo -->
     <div class="row">
         <div class="col-12">
             <div class="header-logo d-flex justify-content-between align-items-center">
-                <h3 class="text-dark m-0 fw-bold"><i class="fa-solid fa-industry text-primary"></i> CONFIPETROL S.A.S.</h3>
-                <h4 class="text-secondary m-0">DASHBOARD INSPECCIONES VISUALES DE INTEGRIDAD</h4>
+                <div class="d-flex align-items-center gap-3">
+                    <img src="./logo.png.png" alt="Logo Confipetrol" style="max-height: 50px; width: auto;">
+                </div>
+                <h4 class="text-secondary m-0 fw-bold">DASHBOARD INSPECCIONES VISUALES DE INTEGRIDAD</h4>
             </div>
         </div>
     </div>
@@ -128,7 +129,7 @@
             <div class="table-section">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-table"></i> Cuadro Consolidado de Actividades</h5>
-                    <input type="text" id="buscadorTabla" class="form-control w-25" placeholder="Buscar por código, equipo o estación...">
+                    <input type="text" id="buscadorTabla" class="form-control w-25" placeholder="Buscar por código, actividad o estación...">
                 </div>
                 <div class="table-responsive">
                     <table class="table table-striped table-hover align-middle" id="tablaConsolidada">
@@ -136,7 +137,7 @@
                             <tr>
                                 <th>Código</th>
                                 <th>Capítulo</th>
-                                <th>Descripción</th>
+                                <th>Descripción de la actividad</th>
                                 <th>Unidad</th>
                                 <th>Lizama</th>
                                 <th>Chimita</th>
@@ -194,9 +195,9 @@
         </div>
     </div>
 
-    <!-- Scripts de Gráficos -->
+    <!-- Scripts de Gráficos e Interactividad -->
     <script>
-        // Gráfico de Barras por Estación
+        // Gráfico de Barras por las 6 Estaciones
         const ctxEstaciones = document.getElementById('graficoEstaciones').getContext('2d');
         new Chart(ctxEstaciones, {
             type: 'bar',
@@ -231,7 +232,7 @@
             }
         });
 
-        // Buscador interactivo en tabla
+        // Buscador dinámico en tabla
         document.getElementById('buscadorTabla').addEventListener('keyup', function() {
             let filtro = this.value.toLowerCase();
             let filas = document.querySelectorAll('#tablaConsolidada tbody tr');
