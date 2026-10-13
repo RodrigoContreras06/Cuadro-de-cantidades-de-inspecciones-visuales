@@ -8,13 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Leaflet CSS (Mapas Interactivos) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <!-- Chart.js + Plugin DataLabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -105,14 +101,6 @@
             width: 100%;
         }
 
-        /* Contenedor del Mapa Interactivo */
-        #mapaRuta {
-            height: 380px;
-            width: 100%;
-            border-radius: 8px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-        }
-
         /* Tabla estilizada */
         .table-custom th {
             background-color: var(--primary-blue) !important;
@@ -158,6 +146,22 @@
         .btn-mapa:hover {
             background-color: #0f766e;
             color: #ffffff;
+        }
+
+        .btn-ruta-global {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+        .btn-ruta-global:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+            color: white;
         }
     </style>
 </head>
@@ -254,15 +258,17 @@
         </div>
     </div>
 
-    <!-- Sección de Mapas e Inspectores Visuales de Ruta -->
+    <!-- Barra de Acción para Trazar Ruta Completa en Google Maps -->
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="panel-box">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold text-primary m-0"><i class="fa-solid fa-earth-americas"></i> Trazabilidad Satelital de Ruta de Inspección en Campo</h6>
-                    <small class="text-muted">Visualización interactiva de puntos y traza de la línea inspeccionada (Vista Satelital)</small>
+        <div class="col-12 text-center">
+            <div class="panel-box py-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-route"></i> Trazabilidad Geográfica de Inspección</h5>
+                    <small class="text-muted">Abre los puntos filtrados directamente en Google Maps con vista satelital desde el espacio.</small>
                 </div>
-                <div id="mapaRuta"></div>
+                <button id="btnAbrirRuta" class="btn btn-ruta-global" onclick="abrirRutaCompletaMaps()" disabled>
+                    <i class="fa-solid fa-earth-americas"></i> Abrir Ruta Filtrada en Google Maps (Satélite)
+                </button>
             </div>
         </div>
     </div>
@@ -372,7 +378,7 @@
         </div>
     </div>
 
-    <!-- Lógica de Conexión, Conversión de Coordenadas, Mapa Interactivo Leaflet y Filtros -->
+    <!-- Lógica de Conexión, Conversión de Coordenadas y Filtros -->
     <script>
         Chart.register(ChartDataLabels);
 
@@ -381,29 +387,14 @@
         let datosGlobales = [];
         let preciosUnitariosGuardados = {}; 
         let ultimoAgrupadoGlobal = {}; 
+        let datosFiltradosActuales = [];
         let graficoBarras, graficoDoughnut;
-        let map = null;
-        let layerGroupMarkers = null;
 
         const estacionesOficiales = ["Lizama", "Chimita", "Sebastopol", "Vasconia", "Galán", "Santa Rosa"];
 
         document.addEventListener("DOMContentLoaded", function() {
-            inicializarMapaLeaflet();
             cargarDatosDesdeSheets();
         });
-
-        function inicializarMapaLeaflet() {
-            // Coordenadas iniciales centradas aprox en Magdalena Medio / Santander
-            map = L.map('mapaRuta').setView([7.065, -73.854], 9);
-
-            // Capa Satelital de Esri World Imagery (Vista desde el espacio nítida)
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-                maxZoom: 19
-            }).addTo(map);
-
-            layerGroupMarkers = L.layerGroup().addTo(map);
-        }
 
         /**
          * Convierte coordenadas DMS a Objeto Lat/Lng decimal
@@ -421,7 +412,6 @@
                 let latMin = parseFloat(match[2]);
                 let latSec = parseFloat(match[3].replace(',', '.'));
                 let latDir = match[4].toUpperCase();
-
                 let latDec = latDeg + (latMin / 60) + (latSec / 3600);
                 if (latDir === 'S') latDec = -latDec;
 
@@ -429,55 +419,36 @@
                 let lngMin = parseFloat(match[6]);
                 let lngSec = parseFloat(match[7].replace(',', '.'));
                 let lngDir = match[8].toUpperCase();
-
                 let lngDec = lngDeg + (lngMin / 60) + (lngSec / 3600);
                 if (lngDir === 'W' || lngDir === 'O') lngDec = -lngDec;
 
-                return { lat: latDec, lng: lngDec };
+                return { lat: latDec.toFixed(6), lng: lngDec.toFixed(6) };
             } catch (e) {
                 return null;
             }
         }
 
-        function actualizarMapaRuta(datosFiltrados) {
-            if (!map || !layerGroupMarkers) return;
-            layerGroupMarkers.clearLayers();
+        function abrirRutaCompletaMaps() {
+            if (!datosFiltradosActuales || datosFiltradosActuales.length === 0) return;
 
-            let puntosRuta = [];
-            let bounds = L.latLngBounds();
-
-            datosFiltrados.forEach((item, index) => {
+            let coordenadasValidas = [];
+            datosFiltradosActuales.forEach(item => {
                 let rawUbicacion = item["Ubicación (coordenadas)"] || item["Ubicación"] || "";
-                let coords = convertirDmsACoordenada(rawUbicacion);
-
-                if (coords) {
-                    let latLng = [coords.lat, coords.lng];
-                    puntosRuta.push(latLng);
-                    bounds.extend(latLng);
-
-                    let codigo = item["Código partida"] || item["Código"] || "S/C";
-                    let equipo = item["Equipo / Sistema"] || "-";
-                    let estacion = item["Estación"] || "-";
-                    let prioridad = (item["Prioridad"] || "").toUpperCase();
-
-                    let marker = L.marker(latLng).bindPopup(`
-                        <div style="font-size: 0.85rem;">
-                            <b>Estación:</b> ${estacion}<br>
-                            <b>Equipo:</b> ${equipo}<br>
-                            <b>Código:</b> ${codigo}<br>
-                            <b>Prioridad:</b> ${prioridad}<br>
-                            <a href="https://www.google.com/maps?q=${coords.lat},${coords.lng}&t=k" target="_blank" class="btn btn-xs btn-success mt-1 py-0 px-2" style="font-size:0.75rem;">🗺️ Abrir Google Maps</a>
-                        </div>
-                    `);
-                    layerGroupMarkers.addLayer(marker);
+                let coord = convertirDmsACoordenada(rawUbicacion);
+                if (coord) {
+                    coordenadasValidas.push(`${coord.lat},${coord.lng}`);
                 }
             });
 
-            // Si hay puntos, trazar la línea de recorrido (ruta) y ajustar el zoom
-            if (puntosRuta.length > 0) {
-                let polyline = L.polyline(puntosRuta, { color: '#f97316', weight: 4, opacity: 0.8, dashArray: '6, 6' }).addTo(layerGroupMarkers);
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+            if (coordenadasValidas.length === 0) {
+                alert("No hay coordenadas válidas en los filtros actuales para trazar la ruta.");
+                return;
             }
+
+            // Google Maps permite armar una ruta de puntos concatenados con /
+            // &t=k fuerza la vista satelital (desde el espacio)
+            let urlRuta = `https://www.google.com/maps/dir/${coordenadasValidas.join('/')}/&t=k`;
+            window.open(urlRuta, '_blank');
         }
 
         async function cargarDatosDesdeSheets() {
@@ -532,7 +503,7 @@
             const fHasta = document.getElementById("fechaHasta").value;
             const fTexto = document.getElementById("buscadorTabla").value.toLowerCase();
 
-            const datosFiltrados = datosGlobales.filter(item => {
+            datosFiltradosActuales = datosGlobales.filter(item => {
                 let estacion = (item["Estación"] || "").toLowerCase();
                 let prioridad = (item["Prioridad"] || "").toLowerCase();
                 let codigo = (item["Código partida"] || item["Código"] || "").toLowerCase();
@@ -558,8 +529,15 @@
                 return true;
             });
 
-            renderizarDashboard(datosFiltrados);
-            actualizarMapaRuta(datosFiltrados);
+            // Habilitar o deshabilitar botón de ruta según si hay datos filtrados
+            const btnRuta = document.getElementById("btnAbrirRuta");
+            if (datosFiltradosActuales.length > 0) {
+                btnRuta.removeAttribute("disabled");
+            } else {
+                btnRuta.setAttribute("disabled", "true");
+            }
+
+            renderizarDashboard(datosFiltradosActuales);
         }
 
         function renderizarDashboard(datos) {
@@ -609,10 +587,10 @@
                 });
                 agrupadoCodigo[codigo].numHallazgos++;
 
-                // Generar botón de respaldo a Google Maps Satelital (Comodín Opción 1)
-                let coords = convertirDmsACoordenada(rawUbicacion);
-                let btnUbicacion = coords 
-                    ? `<a href="https://www.google.com/maps?q=${coords.lat},${coords.lng}&t=k" target="_blank" class="btn-mapa" title="Abrir Google Maps Satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
+                // Botón individual de Google Maps Satelital por registro
+                let coord = convertirDmsACoordenada(rawUbicacion);
+                let btnUbicacion = coord 
+                    ? `<a href="https://www.google.com/maps?q=${coord.lat},${coord.lng}&t=k" target="_blank" class="btn-mapa" title="Ver Punto en Google Maps"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
                     : `<span class="text-muted small">-</span>`;
 
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
