@@ -166,7 +166,7 @@
         </div>
     </div>
 
-    <!-- Panel de Filtros Interactivos (Incluyendo Filtro por Número de Equipo) -->
+    <!-- Panel de Filtros Interactivos (Filtro por Número de Equipo estricto) -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box py-3">
@@ -184,7 +184,7 @@
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-6">
-                        <label class="filter-label"><i class="fa-solid fa-gears"></i> N° de Equipo / SAP</label>
+                        <label class="filter-label"><i class="fa-solid fa-hashtag"></i> N° de Equipo SAP</label>
                         <select id="filtroEquipo" class="form-select form-select-sm" onchange="aplicarFiltros()">
                             <option value="">Todos los equipos</option>
                         </select>
@@ -321,7 +321,7 @@
         </div>
     </div>
 
-    <!-- Tabla Detallada de Registros con Columna de Partida -->
+    <!-- Tabla Detallada de Registros -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box">
@@ -335,7 +335,7 @@
                             <tr>
                                 <th>Código</th>
                                 <th>Estación</th>
-                                <th>Equipo SAP / TAG</th>
+                                <th>N° Equipo SAP</th>
                                 <th>Partida</th>
                                 <th>Prioridad</th>
                                 <th>Cantidad</th>
@@ -369,9 +369,6 @@
             cargarDatosDesdeSheets();
         });
 
-        /**
-         * Convierte coordenadas DMS a Lat/Lng decimal para Google Maps Satelital (&t=k)
-         */
         function convertirDmsAGoogleMaps(coordDMS) {
             if (!coordDMS || coordDMS === "-" || coordDMS === "N/A") return null;
 
@@ -428,8 +425,11 @@
                 let cod = d["Código partida"] || d["Código"] || "";
                 if (cod) codigosUnicos.add(cod);
 
-                let eq = d["Equipo SAP"] || d["TAG"] || d["Equipo / Sistema"] || "";
-                if (eq && eq !== "N/A") equiposUnicos.add(eq);
+                // Leer estrictamente el número de equipo (Número de Equipo SAP / No. Equipo SAP)
+                let eq = d["Número de Equipo SAP"] || d["No. Equipo SAP"] || d["Equipo SAP"] || "";
+                if (eq && String(eq).trim() !== "" && String(eq).trim() !== "N/A") {
+                    equiposUnicos.add(String(eq).trim());
+                }
             });
             
             selectCod.innerHTML = '<option value="">Todos los códigos</option>';
@@ -438,7 +438,7 @@
             });
 
             selectEquipo.innerHTML = '<option value="">Todos los equipos</option>';
-            Array.from(equiposUnicos).sort().forEach(e => {
+            Array.from(equiposUnicos).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(e => {
                 selectEquipo.innerHTML += `<option value="${e}">${e}</option>`;
             });
         }
@@ -470,14 +470,14 @@
 
             const datosFiltrados = datosGlobales.filter(item => {
                 let estacion = (item["Estación"] || "").toLowerCase();
-                let equipo = (item["Equipo SAP"] || item["TAG"] || item["Equipo / Sistema"] || "").toLowerCase();
+                let equipo = (item["Número de Equipo SAP"] || item["No. Equipo SAP"] || item["Equipo SAP"] || "").toLowerCase();
                 let codigo = (item["Código partida"] || item["Código"] || "").toLowerCase();
                 let prioridad = (item["Prioridad"] || "").toLowerCase();
                 let fechaStr = item["Fecha inspección"] || item["Fecha"] || "";
                 let textoFila = JSON.stringify(item).toLowerCase();
 
                 if (fEstacion && !estacion.includes(fEstacion)) return false;
-                if (fEquipo && !equipo.includes(fEquipo)) return false;
+                if (fEquipo && equipo !== fEquipo) return false; // Filtro estricto por número de equipo
                 if (fCodigo && codigo !== fCodigo) return false;
                 if (fPrioridad && prioridad !== fPrioridad) return false;
                 if (fTexto && !textoFila.includes(fTexto)) return false;
@@ -515,7 +515,7 @@
                 let cantidad = parseFloat(row["Cantidad"]) || 1;
                 let unidad = row["Unidad"] || "und";
                 let capitulo = row["Capítulo"] || "GENERAL";
-                let equipoSapTag = row["Equipo SAP"] || row["TAG"] || row["Equipo / System"] || "-";
+                let numEquipoSap = row["Número de Equipo SAP"] || row["No. Equipo SAP"] || row["Equipo SAP"] || "-";
                 let partidaOficial = row["Partida"] || row["Descripción de la partida"] || row["Componente inspeccionado"] || codigo;
                 let rawUbicacion = row["Ubicación (coordenadas)"] || row["Ubicación"] || "";
 
@@ -547,7 +547,6 @@
                 });
                 agrupadoCodigo[codigo].numHallazgos++;
 
-                // Botón individual de Google Maps Satelital por registro
                 let urlMaps = convertirDmsAGoogleMaps(rawUbicacion);
                 let btnUbicacion = urlMaps 
                     ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Ver punto exacto en Google Maps Satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
@@ -558,7 +557,7 @@
                 tr.innerHTML = `
                     <td class="text-center"><b>${codigo}</b></td>
                     <td>${estacion}</td>
-                    <td><small class="fw-bold">${equipoSapTag}</small><br><span class="text-muted">${row["Equipo / Sistema"] || ""}</span></td>
+                    <td class="text-center fw-bold text-primary">${numEquipoSap}</td>
                     <td>${partidaOficial}</td>
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
