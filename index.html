@@ -166,7 +166,7 @@
         </div>
     </div>
 
-    <!-- Panel de Filtros Interactivos (Filtro por Número de Equipo estricto) -->
+    <!-- Panel de Filtros Interactivos -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box py-3">
@@ -352,7 +352,7 @@
         </div>
     </div>
 
-    <!-- Lógica de Conexión, Conversión de Coordenadas y Filtros -->
+    <!-- Lógica de Conexión, Conversión de Coordenadas y Filtros Blindados -->
     <script>
         Chart.register(ChartDataLabels);
 
@@ -414,6 +414,26 @@
             }
         }
 
+        /**
+         * Busca un valor probando varias posibles variaciones de nombres de columnas
+         */
+        function obtenerValorColumna(row, posiblesNombres) {
+            for (let nombre of posiblesNombres) {
+                if (row[nombre] !== undefined && row[nombre] !== null && String(row[nombre]).trim() !== "") {
+                    return row[nombre];
+                }
+            }
+            // Búsqueda insensible a mayúsculas/minúsculas
+            const keys = Object.keys(row);
+            for (let nombre of posiblesNombres) {
+                const encontrada = keys.find(k => k.trim().toLowerCase() === nombre.trim().toLowerCase());
+                if (encontrada && row[encontrada] !== undefined && row[encontrada] !== null && String(row[encontrada]).trim() !== "") {
+                    return row[encontrada];
+                }
+            }
+            return "";
+        }
+
         function poblarSelectsFiltros(datos) {
             const selectCod = document.getElementById("filtroCodigo");
             const selectEquipo = document.getElementById("filtroEquipo");
@@ -422,12 +442,12 @@
             const equiposUnicos = new Set();
             
             datos.forEach(d => {
-                let cod = d["Código partida"] || d["Código"] || "";
-                if (cod) codigosUnicos.add(cod);
+                let cod = obtenerValorColumna(d, ["Código partida", "Codigo partida", "Código", "Codigo"]);
+                if (cod) codigosUnicos.add(String(cod).trim());
 
-                // Leer estrictamente el número de equipo (Número de Equipo SAP / No. Equipo SAP)
-                let eq = d["Número de Equipo SAP"] || d["No. Equipo SAP"] || d["Equipo SAP"] || "";
-                if (eq && String(eq).trim() !== "" && String(eq).trim() !== "N/A") {
+                // Detectar número de equipo en cualquiera de sus variantes posibles
+                let eq = obtenerValorColumna(d, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"]);
+                if (eq && String(eq).trim() !== "" && String(eq).trim() !== "N/A" && String(eq).trim() !== "-") {
                     equiposUnicos.add(String(eq).trim());
                 }
             });
@@ -469,15 +489,15 @@
             const fTexto = document.getElementById("buscadorTabla").value.toLowerCase();
 
             const datosFiltrados = datosGlobales.filter(item => {
-                let estacion = (item["Estación"] || "").toLowerCase();
-                let equipo = (item["Número de Equipo SAP"] || item["No. Equipo SAP"] || item["Equipo SAP"] || "").toLowerCase();
-                let codigo = (item["Código partida"] || item["Código"] || "").toLowerCase();
-                let prioridad = (item["Prioridad"] || "").toLowerCase();
-                let fechaStr = item["Fecha inspección"] || item["Fecha"] || "";
+                let estacion = String(obtenerValorColumna(item, ["Estación", "Estacion"])) .toLowerCase();
+                let equipo = String(obtenerValorColumna(item, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"])).toLowerCase();
+                let codigo = String(obtenerValorColumna(item, ["Código partida", "Codigo partida", "Código", "Codigo"])).toLowerCase();
+                let prioridad = String(obtenerValorColumna(item, ["Prioridad"])).toLowerCase();
+                let fechaStr = String(obtenerValorColumna(item, ["Fecha inspección", "Fecha inspeccion", "Fecha"]));
                 let textoFila = JSON.stringify(item).toLowerCase();
 
                 if (fEstacion && !estacion.includes(fEstacion)) return false;
-                if (fEquipo && equipo !== fEquipo) return false; // Filtro estricto por número de equipo
+                if (fEquipo && equipo !== fEquipo) return false;
                 if (fCodigo && codigo !== fCodigo) return false;
                 if (fPrioridad && prioridad !== fPrioridad) return false;
                 if (fTexto && !textoFila.includes(fTexto)) return false;
@@ -509,22 +529,22 @@
             const agrupadoCodigo = {};
 
             datos.forEach(row => {
-                let estacion = row["Estación"] || "";
-                let prioridad = (row["Prioridad"] || "").toLowerCase();
-                let codigo = row["Código partida"] || row["Código"] || "S/C";
-                let cantidad = parseFloat(row["Cantidad"]) || 1;
-                let unidad = row["Unidad"] || "und";
-                let capitulo = row["Capítulo"] || "GENERAL";
-                let numEquipoSap = row["Número de Equipo SAP"] || row["No. Equipo SAP"] || row["Equipo SAP"] || "-";
-                let partidaOficial = row["Partida"] || row["Descripción de la partida"] || row["Componente inspeccionado"] || codigo;
-                let rawUbicacion = row["Ubicación (coordenadas)"] || row["Ubicación"] || "";
+                let estacion = obtenerValorColumna(row, ["Estación", "Estacion"]);
+                let prioridad = String(obtenerValorColumna(row, ["Prioridad"])).toLowerCase();
+                let codigo = obtenerValorColumna(row, ["Código partida", "Codigo partida", "Código", "Codigo"]) || "S/C";
+                let cantidad = parseFloat(obtenerValorColumna(row, ["Cantidad"])) || 1;
+                let unidad = obtenerValorColumna(row, ["Unidad"]) || "und";
+                let capitulo = obtenerValorColumna(row, ["Capítulo", "Capitulo"]) || "GENERAL";
+                let numEquipoSap = obtenerValorColumna(row, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"]) || "-";
+                let partidaOficial = obtenerValorColumna(row, ["Partida", "Descripción de la partida", "Componente inspeccionado"]) || codigo;
+                let rawUbicacion = obtenerValorColumna(row, ["Ubicación (coordenadas)", "Ubicación", "Ubicacion"]);
 
                 if (prioridad === "alta") cntAlta++;
                 else if (prioridad === "media") cntMedia++;
                 else if (prioridad === "baja") cntBaja++;
 
                 estacionesOficiales.forEach(est => {
-                    if (estacion.toLowerCase().includes(est.toLowerCase())) {
+                    if (String(estacion).toLowerCase().includes(est.toLowerCase())) {
                         conteoEstaciones[est]++;
                     }
                 });
@@ -541,7 +561,7 @@
                 }
 
                 estacionesOficiales.forEach(est => {
-                    if (estacion.toLowerCase().includes(est.toLowerCase())) {
+                    if (String(estacion).toLowerCase().includes(est.toLowerCase())) {
                         agrupadoCodigo[codigo].cantidades[est] += cantidad;
                     }
                 });
@@ -562,7 +582,7 @@
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
                     <td class="text-center">${btnUbicacion}</td>
-                    <td class="text-center">${row["Fecha inspección"] || "-"}</td>
+                    <td class="text-center">${obtenerValorColumna(row, ["Fecha inspección", "Fecha inspeccion", "Fecha"]) || "-"}</td>
                 `;
                 tablaBody.appendChild(tr);
             });
