@@ -46,7 +46,7 @@
             background: #ffffff;
             color: #1e293b;
             border-radius: 12px;
-            padding: 18px 15px;
+            padding: 15px 10px;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
             text-align: center;
             cursor: pointer;
@@ -58,24 +58,24 @@
             transform: translateY(-4px);
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
         }
+        .kpi-card.total { border-top: 5px solid #1e3a8a; }
         .kpi-card.alta { border-top: 5px solid #dc2626; }
         .kpi-card.media { border-top: 5px solid #d97706; }
         .kpi-card.baja { border-top: 5px solid #16a34a; }
-        .kpi-card.total { border-top: 5px solid #1e3a8a; }
         .kpi-card.money { border-top: 5px solid var(--money-green); }
 
         .kpi-title {
-            font-size: 0.78rem;
+            font-size: 0.72rem;
             font-weight: 700;
             text-transform: uppercase;
             color: #64748b;
             letter-spacing: 0.5px;
         }
         .kpi-value {
-            font-size: 2.1rem;
+            font-size: 1.8rem;
             font-weight: 800;
             line-height: 1.2;
-            margin-top: 5px;
+            margin-top: 4px;
         }
 
         /* Contenedores de Filtros, Gráficos y Tablas */
@@ -105,7 +105,7 @@
         .table-custom th {
             background-color: var(--primary-blue) !important;
             color: #ffffff !important;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             text-align: center;
             vertical-align: middle;
@@ -120,7 +120,7 @@
         }
         .table-custom td, .table-money td {
             vertical-align: middle;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
         }
 
         .input-precio {
@@ -134,9 +134,9 @@
             background-color: #0d9488;
             color: #ffffff;
             font-weight: 600;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             border-radius: 6px;
-            padding: 2px 8px;
+            padding: 2px 6px;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
@@ -160,7 +160,7 @@
                 </div>
                 <div class="text-end">
                     <h3 class="m-0 fw-bold text-dark" style="color: var(--primary-blue) !important;">INSPECCIONES VISUALES DE INTEGRIDAD</h3>
-                    <span class="badge bg-secondary">Control, Valorización y Ubicación Satelital</span>
+                    <span class="badge bg-secondary">Control, Valorización y Seguimiento de Estatus</span>
                 </div>
             </div>
         </div>
@@ -219,27 +219,33 @@
         </div>
     </div>
 
-    <!-- Tarjetas KPI Interactivas Simétricas -->
+    <!-- Tarjetas KPI Interactivas Simétricas (Incluyendo Prioridad Baja 🟢) -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3 col-sm-6">
+        <div class="col-md-2 col-sm-4">
             <div class="kpi-card total" onclick="filtrarPorCardPrioridad('')">
                 <div class="kpi-title">Total Hallazgos</div>
                 <div class="kpi-value text-primary" id="valTotalHallazgos">0</div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <div class="col-md-2 col-sm-4">
             <div class="kpi-card alta" onclick="filtrarPorCardPrioridad('alta')">
                 <div class="kpi-title">Prioridad Alta 🔴</div>
                 <div class="kpi-value text-danger" id="valAlta">0</div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <div class="col-md-2 col-sm-4">
             <div class="kpi-card media" onclick="filtrarPorCardPrioridad('media')">
                 <div class="kpi-title">Prioridad Media 🟡</div>
                 <div class="kpi-value text-warning" id="valMedia">0</div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <div class="col-md-2 col-sm-4">
+            <div class="kpi-card baja" onclick="filtrarPorCardPrioridad('baja')">
+                <div class="kpi-title">Prioridad Baja 🟢</div>
+                <div class="kpi-value text-success" id="valBaja">0</div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-8">
             <div class="kpi-card money">
                 <div class="kpi-title">Monto Estimado Alcance</div>
                 <div class="kpi-value text-success" id="valMontoTotal">$0 COP</div>
@@ -321,7 +327,7 @@
         </div>
     </div>
 
-    <!-- Tabla Detallada de Registros -->
+    <!-- Tabla Detallada con Denominación y Estatus -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box">
@@ -336,10 +342,12 @@
                                 <th>Código</th>
                                 <th>Estación</th>
                                 <th>N° Equipo SAP</th>
+                                <th>Denominación</th>
                                 <th>Partida</th>
                                 <th>Prioridad</th>
                                 <th>Cantidad</th>
-                                <th>Ubicación Satelital</th>
+                                <th>Estatus</th>
+                                <th>Ubicación</th>
                                 <th>Fecha</th>
                             </tr>
                         </thead>
@@ -352,7 +360,7 @@
         </div>
     </div>
 
-    <!-- Lógica de Conexión, Conversión de Coordenadas y Filtros Blindados -->
+    <!-- Lógica de Conexión y Renderizado -->
     <script>
         Chart.register(ChartDataLabels);
 
@@ -414,16 +422,12 @@
             }
         }
 
-        /**
-         * Busca un valor probando varias posibles variaciones de nombres de columnas
-         */
         function obtenerValorColumna(row, posiblesNombres) {
             for (let nombre of posiblesNombres) {
                 if (row[nombre] !== undefined && row[nombre] !== null && String(row[nombre]).trim() !== "") {
                     return row[nombre];
                 }
             }
-            // Búsqueda insensible a mayúsculas/minúsculas
             const keys = Object.keys(row);
             for (let nombre of posiblesNombres) {
                 const encontrada = keys.find(k => k.trim().toLowerCase() === nombre.trim().toLowerCase());
@@ -445,7 +449,6 @@
                 let cod = obtenerValorColumna(d, ["Código partida", "Codigo partida", "Código", "Codigo"]);
                 if (cod) codigosUnicos.add(String(cod).trim());
 
-                // Detectar número de equipo en cualquiera de sus variantes posibles
                 let eq = obtenerValorColumna(d, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"]);
                 if (eq && String(eq).trim() !== "" && String(eq).trim() !== "N/A" && String(eq).trim() !== "-") {
                     equiposUnicos.add(String(eq).trim());
@@ -489,7 +492,7 @@
             const fTexto = document.getElementById("buscadorTabla").value.toLowerCase();
 
             const datosFiltrados = datosGlobales.filter(item => {
-                let estacion = String(obtenerValorColumna(item, ["Estación", "Estacion"])) .toLowerCase();
+                let estacion = String(obtenerValorColumna(item, ["Estación", "Estacion"])).toLowerCase();
                 let equipo = String(obtenerValorColumna(item, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"])).toLowerCase();
                 let codigo = String(obtenerValorColumna(item, ["Código partida", "Codigo partida", "Código", "Codigo"])).toLowerCase();
                 let prioridad = String(obtenerValorColumna(item, ["Prioridad"])).toLowerCase();
@@ -535,7 +538,9 @@
                 let cantidad = parseFloat(obtenerValorColumna(row, ["Cantidad"])) || 1;
                 let unidad = obtenerValorColumna(row, ["Unidad"]) || "und";
                 let capitulo = obtenerValorColumna(row, ["Capítulo", "Capitulo"]) || "GENERAL";
-                let numEquipoSap = obtenerValorColumna(row, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"]) || "-";
+                let numEquipoSap = obtenerValorColumna(row, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP"]) || "-";
+                let denominacion = obtenerValorColumna(row, ["Denominación", "Denominacion"]) || "-";
+                let estatus = obtenerValorColumna(row, ["Estatus", "Estado"]) || "Pendiente";
                 let partidaOficial = obtenerValorColumna(row, ["Partida", "Descripción de la partida", "Componente inspeccionado"]) || codigo;
                 let rawUbicacion = obtenerValorColumna(row, ["Ubicación (coordenadas)", "Ubicación", "Ubicacion"]);
 
@@ -569,18 +574,28 @@
 
                 let urlMaps = convertirDmsAGoogleMaps(rawUbicacion);
                 let btnUbicacion = urlMaps 
-                    ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Ver punto exacto en Google Maps Satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
+                    ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Ver satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
                     : `<span class="text-muted small">-</span>`;
 
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
+                
+                // Color para el estatus
+                let badgeEstatus = 'bg-secondary';
+                let estLower = String(estatus).toLowerCase();
+                if (estLower.includes('final') || estLower.includes('gestionado') || estLower.includes('listo')) badgeEstatus = 'bg-success';
+                else if (estLower.includes('proceso') || estLower.includes('curso')) badgeEstatus = 'bg-primary';
+                else if (estLower.includes('pendiente')) badgeEstatus = 'bg-warning text-dark';
+
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td class="text-center"><b>${codigo}</b></td>
                     <td>${estacion}</td>
                     <td class="text-center fw-bold text-primary">${numEquipoSap}</td>
+                    <td><small>${denominacion}</small></td>
                     <td>${partidaOficial}</td>
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
+                    <td class="text-center"><span class="badge ${badgeEstatus}">${estatus}</span></td>
                     <td class="text-center">${btnUbicacion}</td>
                     <td class="text-center">${obtenerValorColumna(row, ["Fecha inspección", "Fecha inspeccion", "Fecha"]) || "-"}</td>
                 `;
@@ -592,6 +607,7 @@
             document.getElementById("valTotalHallazgos").innerText = datos.length;
             document.getElementById("valAlta").innerText = cntAlta;
             document.getElementById("valMedia").innerText = cntMedia;
+            document.getElementById("valBaja").innerText = cntBaja; // Actualizar indicador de Baja
 
             renderizarCuadroValorizacion(agrupadoCodigo);
             renderizarGraficos(conteoEstaciones, cntAlta, cntMedia, cntBaja);
