@@ -738,8 +738,8 @@
                 estacionesOficiales.forEach(e => {
                     sumaCantFila += item.cantidades[e];
                 });
-                let precioUnit = preciosUnitariosGuardados[cod] || 0;
-                totalMonto += (sumaCantFila * precioUnit);
+                let precioUnit = preciosUnitariosGuardados[codigo] || preciosUnitariosGuardados[cod] || 0;
+                totalMonto += (sumaCantFila * (preciosUnitariosGuardados[cod] || 0));
             }
 
             const formatoCOP = "$" + totalMonto.toLocaleString('es-CO') + " COP";
@@ -748,16 +748,23 @@
         }
 
         function renderizarGraficos(estaciones, alta, media, baja) {
+            // Ordenar las estaciones de MAYOR a MENOR (Escalonado)
+            const estacionesOrdenadas = Object.entries(estaciones)
+                .sort((a, b) => b[1] - a[1]);
+
+            const etiquetasOrdenadas = estacionesOrdenadas.map(item => item[0]);
+            const valoresOrdenados = estacionesOrdenadas.map(item => item[1]);
+
             const ctxEstaciones = document.getElementById('graficoEstaciones').getContext('2d');
             if (graficoBarras) graficoBarras.destroy();
             
             graficoBarras = new Chart(ctxEstaciones, {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(estaciones),
+                    labels: etiquetasOrdenadas,
                     datasets: [{
                         label: 'Cantidad de Hallazgos',
-                        data: Object.values(estaciones),
+                        data: valoresOrdenados,
                         backgroundColor: '#1e3a8a',
                         borderRadius: 6
                     }]
