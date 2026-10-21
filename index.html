@@ -123,6 +123,18 @@
             font-size: 0.85rem;
         }
 
+        .aviso-badge {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            font-family: monospace;
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 1px 0;
+        }
+
         .input-precio {
             width: 110px;
             text-align: right;
@@ -160,7 +172,7 @@
                 </div>
                 <div class="text-end">
                     <h3 class="m-0 fw-bold text-dark" style="color: var(--primary-blue) !important;">INSPECCIONES VISUALES DE INTEGRIDAD</h3>
-                    <span class="badge bg-secondary">Control, Valorización y Seguimiento de Estatus</span>
+                    <span class="badge bg-secondary">Control, Valorización y Avisos SAP Y4</span>
                 </div>
             </div>
         </div>
@@ -219,7 +231,7 @@
         </div>
     </div>
 
-    <!-- Tarjetas KPI Interactivas Simétricas (Incluyendo Prioridad Baja 🟢) -->
+    <!-- Tarjetas KPI Interactivas Simétricas -->
     <div class="row g-3 mb-4">
         <div class="col-md-2 col-sm-4">
             <div class="kpi-card total" onclick="filtrarPorCardPrioridad('')">
@@ -291,12 +303,12 @@
                                 <th>Capítulo</th>
                                 <th>Partida (Catálogo)</th>
                                 <th>Unidad</th>
+                                <th>Santa Rosa</th>
                                 <th>Lizama</th>
-                                <th>Chimita</th>
                                 <th>Sebastopol</th>
                                 <th>Vasconia</th>
                                 <th>Galán</th>
-                                <th>Santa Rosa</th>
+                                <th>Chimita</th>
                                 <th>Total Cantidad</th>
                                 <th>N° Hallazgos</th>
                                 <th>Precio Unit. (COP)</th>
@@ -308,16 +320,10 @@
                         </tbody>
                         <tfoot>
                             <tr class="table-dark fw-bold fs-6">
-                                <td colspan="4" class="text-end">TOTALES GENERALES DE PROYECTO:</td>
-                                <td id="totLizama" class="text-center">-</td>
-                                <td id="totChimita" class="text-center">-</td>
-                                <td id="totSebastopol" class="text-center">-</td>
-                                <td id="totVasconia" class="text-center">-</td>
-                                <td id="totGalan" class="text-center">-</td>
-                                <td id="totSantaRosa" class="text-center">-</td>
-                                <td id="totCantidadGlobal" class="text-center">-</td>
+                                <td colspan="4" class="text-end">TOTALES GENERALES:</td>
+                                <td colspan="6" class="text-center">-</td>
                                 <td id="totHallazgosGlobal" class="text-center">-</td>
-                                <td>-</td>
+                                <td colspan="2">-</td>
                                 <td id="totMontoGlobal" class="text-end text-warning fw-bold fs-5">$0</td>
                             </tr>
                         </tfoot>
@@ -327,13 +333,13 @@
         </div>
     </div>
 
-    <!-- Tabla Detallada con Denominación y Estatus -->
+    <!-- Tabla Detallada con Columna de Avisos Y4 SAP -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box">
                 <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 gap-2">
                     <h6 class="fw-bold text-primary m-0"><i class="fa-solid fa-list-check"></i> Registros de Inspecciones en Campo (Base Cruda)</h6>
-                    <input type="text" id="buscadorTabla" class="form-control form-control-sm w-auto" style="min-width: 280px;" placeholder="🔍 Buscar texto libre..." onkeyup="aplicarFiltros()">
+                    <input type="text" id="buscadorTabla" class="form-control form-control-sm w-auto" style="min-width: 280px;" placeholder="🔍 Buscar texto libre o aviso..." onkeyup="aplicarFiltros()">
                 </div>
                 <div class="table-responsive">
                     <table class="table table-striped table-hover table-custom align-middle" id="tablaConsolidada">
@@ -347,6 +353,7 @@
                                 <th>Prioridad</th>
                                 <th>Cantidad</th>
                                 <th>Estatus</th>
+                                <th>Avisos Y4 SAP</th>
                                 <th>Ubicación</th>
                                 <th>Fecha</th>
                             </tr>
@@ -371,7 +378,7 @@
         let ultimoAgrupadoGlobal = {}; 
         let graficoBarras, graficoDoughnut;
 
-        const estacionesOficiales = ["Lizama", "Chimita", "Sebastopol", "Vasconia", "Galán", "Santa Rosa"];
+        const estacionesOficiales = ["Santa Rosa", "Lizama", "Sebastopol", "Vasconia", "Galán", "Chimita"];
 
         document.addEventListener("DOMContentLoaded", function() {
             cargarDatosDesdeSheets();
@@ -524,7 +531,7 @@
 
         function renderizarDashboard(datos) {
             let cntAlta = 0, cntMedia = 0, cntBaja = 0;
-            const conteoEstaciones = { "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0 };
+            const conteoEstaciones = { "Santa Rosa": 0, "Lizama": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Chimita": 0 };
 
             const tablaBody = document.querySelector("#tablaConsolidada tbody");
             tablaBody.innerHTML = "";
@@ -541,6 +548,7 @@
                 let numEquipoSap = obtenerValorColumna(row, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP"]) || "-";
                 let denominacion = obtenerValorColumna(row, ["Denominación", "Denominacion"]) || "-";
                 let estatus = obtenerValorColumna(row, ["Estatus", "Estado"]) || "Pendiente";
+                let avisoY4 = obtenerValorColumna(row, ["Aviso Y4", "AvisoY4", "Avisos Y4", "Aviso", "Y4"]) || "-";
                 let partidaOficial = obtenerValorColumna(row, ["Partida", "Descripción de la partida", "Componente inspeccionado"]) || codigo;
                 let rawUbicacion = obtenerValorColumna(row, ["Ubicación (coordenadas)", "Ubicación", "Ubicacion"]);
 
@@ -560,8 +568,9 @@
                         capitulo: capitulo,
                         partida: partidaOficial,
                         unidad: unidad,
-                        cantidades: { "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0 },
-                        numHallazgos: 0
+                        cantidades: { "Santa Rosa": 0, "Lizama": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Chimita": 0 },
+                        numHallazgos: 0,
+                        hallazgosAlta: 0
                     };
                 }
 
@@ -579,12 +588,18 @@
 
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
                 
-                // Color para el estatus
                 let badgeEstatus = 'bg-secondary';
                 let estLower = String(estatus).toLowerCase();
                 if (estLower.includes('final') || estLower.includes('gestionado') || estLower.includes('listo')) badgeEstatus = 'bg-success';
                 else if (estLower.includes('proceso') || estLower.includes('curso')) badgeEstatus = 'bg-primary';
                 else if (estLower.includes('pendiente')) badgeEstatus = 'bg-warning text-dark';
+
+                // Formatear Avisos Y4 (si hay varios separados por saltos de línea o comas, los muestra ordenados)
+                let avisosHtml = "-";
+                if (avisoY4 && avisoY4 !== "-") {
+                    let listaAvisos = String(avisoY4).split(/[\n,]+/);
+                    avisosHtml = listaAvisos.map(av => `<span class="aviso-badge"><i class="fa-solid fa-ticket"></i> ${av.trim()}</span>`).join('<br>');
+                }
 
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
@@ -596,6 +611,7 @@
                     <td class="text-center"><span class="badge ${badgeColor}">${prioridad.toUpperCase()}</span></td>
                     <td class="text-center fw-bold">${cantidad} ${unidad}</td>
                     <td class="text-center"><span class="badge ${badgeEstatus}">${estatus}</span></td>
+                    <td class="text-center">${avisosHtml}</td>
                     <td class="text-center">${btnUbicacion}</td>
                     <td class="text-center">${obtenerValorColumna(row, ["Fecha inspección", "Fecha inspeccion", "Fecha"]) || "-"}</td>
                 `;
@@ -607,7 +623,7 @@
             document.getElementById("valTotalHallazgos").innerText = datos.length;
             document.getElementById("valAlta").innerText = cntAlta;
             document.getElementById("valMedia").innerText = cntMedia;
-            document.getElementById("valBaja").innerText = cntBaja; // Actualizar indicador de Baja
+            document.getElementById("valBaja").innerText = cntBaja;
 
             renderizarCuadroValorizacion(agrupadoCodigo);
             renderizarGraficos(conteoEstaciones, cntAlta, cntMedia, cntBaja);
@@ -617,7 +633,7 @@
             const tbodyVal = document.querySelector("#tablaValorizacion tbody");
             tbodyVal.innerHTML = "";
 
-            let sumEstaciones = { "Lizama": 0, "Chimita": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Santa Rosa": 0 };
+            let sumEstaciones = { "Santa Rosa": 0, "Lizama": 0, "Sebastopol": 0, "Vasconia": 0, "Galán": 0, "Chimita": 0 };
             let sumHallazgosGlobal = 0;
 
             for (const cod in agrupado) {
@@ -640,12 +656,12 @@
                     <td><small>${item.capitulo}</small></td>
                     <td><b>${item.partida}</b></td>
                     <td class="text-center"><span class="badge bg-light text-dark border">${item.unidad}</span></td>
+                    <td class="text-center">${item.cantidades["Santa Rosa"] > 0 ? item.cantidades["Santa Rosa"].toFixed(2) : "-"}</td>
                     <td class="text-center">${item.cantidades["Lizama"] > 0 ? item.cantidades["Lizama"].toFixed(2) : "-"}</td>
-                    <td class="text-center">${item.cantidades["Chimita"] > 0 ? item.cantidades["Chimita"].toFixed(2) : "-"}</td>
                     <td class="text-center">${item.cantidades["Sebastopol"] > 0 ? item.cantidades["Sebastopol"].toFixed(2) : "-"}</td>
                     <td class="text-center">${item.cantidades["Vasconia"] > 0 ? item.cantidades["Vasconia"].toFixed(2) : "-"}</td>
                     <td class="text-center">${item.cantidades["Galán"] > 0 ? item.cantidades["Galán"].toFixed(2) : "-"}</td>
-                    <td class="text-center">${item.cantidades["Santa Rosa"] > 0 ? item.cantidades["Santa Rosa"].toFixed(2) : "-"}</td>
+                    <td class="text-center">${item.cantidades["Chimita"] > 0 ? item.cantidades["Chimita"].toFixed(2) : "-"}</td>
                     <td class="text-center fw-bold bg-light">${sumaCantFila.toFixed(2)}</td>
                     <td class="text-center"><span class="badge bg-secondary">${item.numHallazgos}</span></td>
                     <td>
@@ -656,16 +672,7 @@
                 tbodyVal.appendChild(tr);
             }
 
-            document.getElementById("totLizama").innerText = sumEstaciones["Lizama"] > 0 ? sumEstaciones["Lizama"].toFixed(2) : "-";
-            document.getElementById("totChimita").innerText = sumEstaciones["Chimita"] > 0 ? sumEstaciones["Chimita"].toFixed(2) : "-";
-            document.getElementById("totSebastopol").innerText = sumEstaciones["Sebastopol"] > 0 ? sumEstaciones["Sebastopol"].toFixed(2) : "-";
-            document.getElementById("totVasconia").innerText = sumEstaciones["Vasconia"] > 0 ? sumEstaciones["Vasconia"].toFixed(2) : "-";
-            document.getElementById("totGalan").innerText = sumEstaciones["Galán"] > 0 ? sumEstaciones["Galán"].toFixed(2) : "-";
-            document.getElementById("totSantaRosa").innerText = sumEstaciones["Santa Rosa"] > 0 ? sumEstaciones["Santa Rosa"].toFixed(2) : "-";
-            
-            document.getElementById("totCantidadGlobal").innerText = "-"; 
             document.getElementById("totHallazgosGlobal").innerText = sumHallazgosGlobal;
-
             recalcularMontoGlobal();
         }
 
