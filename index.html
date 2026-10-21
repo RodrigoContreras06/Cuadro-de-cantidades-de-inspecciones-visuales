@@ -172,6 +172,24 @@
             background-color: #0f766e;
             color: #ffffff;
         }
+
+        .btn-onedrive {
+            background-color: #0078d4;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            padding: 2px 6px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.2s;
+        }
+        .btn-onedrive:hover {
+            background-color: #106ebe;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="container-fluid px-4 py-4">
@@ -387,6 +405,7 @@
                                 <th>Estatus</th>
                                 <th>Avisos Y4 SAP</th>
                                 <th>Ubicación</th>
+                                <th>Informe OneDrive</th>
                                 <th>Fecha</th>
                             </tr>
                         </thead>
@@ -601,6 +620,7 @@
                 let avisoY4 = obtenerValorColumna(row, ["Aviso Y4", "AvisoY4", "Avisos Y4", "Aviso", "Y4"]) || "-";
                 let partidaOficial = obtenerValorColumna(row, ["Partida", "Descripción de la partida", "Componente inspeccionado"]) || codigo;
                 let rawUbicacion = obtenerValorColumna(row, ["Ubicación (coordenadas)", "Ubicación", "Ubicacion"]);
+                let linkOneDrive = obtenerValorColumna(row, ["OneDrive", "Informe OneDrive", "Link OneDrive", "URL OneDrive"]);
 
                 if (prioridad === "alta") cntAlta++;
                 else if (prioridad === "media") cntMedia++;
@@ -636,6 +656,10 @@
                     ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Ver satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
                     : `<span class="text-muted small">-</span>`;
 
+                let btnOneDrive = linkOneDrive && linkOneDrive !== "-" && linkOneDrive !== "N/A"
+                    ? `<a href="${linkOneDrive}" target="_blank" class="btn-onedrive" title="Ver informe en OneDrive"><i class="fa-brands fa-microsoft"></i> Ver Informe</a>`
+                    : `<span class="text-muted small">-</span>`;
+
                 let badgeColor = prioridad === 'alta' ? 'bg-danger' : prioridad === 'media' ? 'bg-warning text-dark' : 'bg-success';
                 
                 let badgeEstatus = 'bg-secondary';
@@ -662,6 +686,7 @@
                     <td class="text-center"><span class="badge ${badgeEstatus}">${estatus}</span></td>
                     <td class="text-center">${avisosHtml}</td>
                     <td class="text-center">${btnUbicacion}</td>
+                    <td class="text-center">${btnOneDrive}</td>
                     <td class="text-center">${obtenerValorColumna(row, ["Fecha inspección", "Fecha inspeccion", "Fecha"]) || "-"}</td>
                 `;
                 tablaBody.appendChild(tr);
@@ -748,7 +773,6 @@
         }
 
         function renderizarGraficos(estaciones, alta, media, baja) {
-            // Ordenar las estaciones de MAYOR a MENOR (Escalonado)
             const estacionesOrdenadas = Object.entries(estaciones)
                 .sort((a, b) => b[1] - a[1]);
 
