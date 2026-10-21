@@ -25,7 +25,6 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
-        /* Encabezado con Logo Destacado */
         .header-panel {
             background-color: #ffffff;
             border-radius: 12px;
@@ -41,7 +40,6 @@
             filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.15));
         }
 
-        /* Tarjetas KPI Interactivas */
         .kpi-card {
             background: #ffffff;
             color: #1e293b;
@@ -78,7 +76,6 @@
             margin-top: 4px;
         }
 
-        /* Contenedores de Filtros, Gráficos y Tablas */
         .panel-box {
             background: #ffffff;
             color: #1e293b;
@@ -89,7 +86,7 @@
         }
         
         .filter-label {
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 700;
             color: #475569;
             margin-bottom: 4px;
@@ -101,7 +98,6 @@
             width: 100%;
         }
 
-        /* Tabla estilizada */
         .table-custom th {
             background-color: var(--primary-blue) !important;
             color: #ffffff !important;
@@ -124,11 +120,12 @@
         }
 
         .aviso-badge {
-            background-color: #f1f5f9;
+            background-color: #e2e8f0;
             color: #0f172a;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #94a3b8;
             font-family: monospace;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
+            font-weight: bold;
             padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
@@ -178,7 +175,7 @@
         </div>
     </div>
 
-    <!-- Panel de Filtros Interactivos -->
+    <!-- Panel de Filtros Interactivos (Incluyendo Filtro por Aviso Y4) -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box py-3">
@@ -202,6 +199,12 @@
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-6">
+                        <label class="filter-label"><i class="fa-solid fa-ticket"></i> Aviso Y4 SAP</label>
+                        <select id="filtroAvisoY4" class="form-select form-select-sm" onchange="aplicarFiltros()">
+                            <option value="">Todos los avisos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-sm-6">
                         <label class="filter-label"><i class="fa-solid fa-barcode"></i> Código Partida</label>
                         <select id="filtroCodigo" class="form-select form-select-sm" onchange="aplicarFiltros()">
                             <option value="">Todos los códigos</option>
@@ -215,13 +218,6 @@
                             <option value="media">Media 🟡</option>
                             <option value="baja">Baja 🟢</option>
                         </select>
-                    </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="filter-label"><i class="fa-solid fa-calendar-day"></i> Fechas (Desde / Hasta)</label>
-                        <div class="d-flex gap-1">
-                            <input type="date" id="fechaDesde" class="form-control form-control-sm" onchange="aplicarFiltros()" title="Fecha Desde">
-                            <input type="date" id="fechaHasta" class="form-control form-control-sm" onchange="aplicarFiltros()" title="Fecha Hasta">
-                        </div>
                     </div>
                     <div class="col-md-2 col-sm-12 text-end">
                         <button class="btn btn-sm btn-outline-danger w-100" onclick="limpiarFiltros()"><i class="fa-solid fa-rotate-left"></i> Limpiar Filtros</button>
@@ -285,7 +281,7 @@
         </div>
     </div>
 
-    <!-- CUADRO DE TOTALES Y VALORIZACIÓN POR ESTACIÓN Y CÓDIGO (PARTIDA) -->
+    <!-- CUADRO DE TOTALES Y VALORIZACIÓN POR ESTACIÓN Y CÓDIGO -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="panel-box border-top border-4 border-success">
@@ -333,7 +329,7 @@
         </div>
     </div>
 
-    <!-- Tabla Detallada con Columna de Avisos Y4 SAP -->
+    <!-- Tabla Detallada de Registros -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box">
@@ -448,9 +444,11 @@
         function poblarSelectsFiltros(datos) {
             const selectCod = document.getElementById("filtroCodigo");
             const selectEquipo = document.getElementById("filtroEquipo");
+            const selectAviso = document.getElementById("filtroAvisoY4");
             
             const codigosUnicos = new Set();
             const equiposUnicos = new Set();
+            const avisosUnicos = new Set();
             
             datos.forEach(d => {
                 let cod = obtenerValorColumna(d, ["Código partida", "Codigo partida", "Código", "Codigo"]);
@@ -459,6 +457,13 @@
                 let eq = obtenerValorColumna(d, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"]);
                 if (eq && String(eq).trim() !== "" && String(eq).trim() !== "N/A" && String(eq).trim() !== "-") {
                     equiposUnicos.add(String(eq).trim());
+                }
+
+                let av = obtenerValorColumna(d, ["Aviso Y4", "AvisoY4", "Avisos Y4", "Aviso", "Y4"]);
+                if (av && String(av).trim() !== "" && String(av).trim() !== "N/A" && String(av).trim() !== "-") {
+                    String(av).split(/[\n,]+/).forEach(a => {
+                        if (a.trim()) avisosUnicos.add(a.trim());
+                    });
                 }
             });
             
@@ -471,6 +476,11 @@
             Array.from(equiposUnicos).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(e => {
                 selectEquipo.innerHTML += `<option value="${e}">${e}</option>`;
             });
+
+            selectAviso.innerHTML = '<option value="">Todos los avisos</option>';
+            Array.from(avisosUnicos).sort().forEach(a => {
+                selectAviso.innerHTML += `<option value="${a}">${a}</option>`;
+            });
         }
 
         function filtrarPorCardPrioridad(prio) {
@@ -481,10 +491,9 @@
         function limpiarFiltros() {
             document.getElementById("filtroEstacion").value = "";
             document.getElementById("filtroEquipo").value = "";
+            document.getElementById("filtroAvisoY4").value = "";
             document.getElementById("filtroCodigo").value = "";
             document.getElementById("filtroPrioridad").value = "";
-            document.getElementById("fechaDesde").value = "";
-            document.getElementById("fechaHasta").value = "";
             document.getElementById("buscadorTabla").value = "";
             aplicarFiltros();
         }
@@ -492,36 +501,25 @@
         function aplicarFiltros() {
             const fEstacion = document.getElementById("filtroEstacion").value.toLowerCase();
             const fEquipo = document.getElementById("filtroEquipo").value.toLowerCase();
+            const fAviso = document.getElementById("filtroAvisoY4").value.toLowerCase();
             const fCodigo = document.getElementById("filtroCodigo").value.toLowerCase();
             const fPrioridad = document.getElementById("filtroPrioridad").value.toLowerCase();
-            const fDesde = document.getElementById("fechaDesde").value;
-            const fHasta = document.getElementById("fechaHasta").value;
             const fTexto = document.getElementById("buscadorTabla").value.toLowerCase();
 
             const datosFiltrados = datosGlobales.filter(item => {
                 let estacion = String(obtenerValorColumna(item, ["Estación", "Estacion"])).toLowerCase();
                 let equipo = String(obtenerValorColumna(item, ["No. Equipo SAP", "Número de Equipo SAP", "Numero de Equipo SAP", "Equipo SAP", "No. Equipo", "Equipo"])).toLowerCase();
+                let aviso = String(obtenerValorColumna(item, ["Aviso Y4", "AvisoY4", "Avisos Y4", "Aviso", "Y4"])).toLowerCase();
                 let codigo = String(obtenerValorColumna(item, ["Código partida", "Codigo partida", "Código", "Codigo"])).toLowerCase();
                 let prioridad = String(obtenerValorColumna(item, ["Prioridad"])).toLowerCase();
-                let fechaStr = String(obtenerValorColumna(item, ["Fecha inspección", "Fecha inspeccion", "Fecha"]));
                 let textoFila = JSON.stringify(item).toLowerCase();
 
                 if (fEstacion && !estacion.includes(fEstacion)) return false;
                 if (fEquipo && equipo !== fEquipo) return false;
+                if (fAviso && !aviso.includes(fAviso)) return false;
                 if (fCodigo && codigo !== fCodigo) return false;
                 if (fPrioridad && prioridad !== fPrioridad) return false;
                 if (fTexto && !textoFila.includes(fTexto)) return false;
-
-                if (fDesde || fHasta) {
-                    if (fechaStr) {
-                        const partes = fechaStr.split('/');
-                        if (partes.length === 3) {
-                            const fechaObj = new Date(partes[2], partes[1] - 1, partes[0]);
-                            if (fDesde && fechaObj < new Date(fDesde)) return false;
-                            if (fHasta && fechaObj > new Date(fHasta)) return false;
-                        }
-                    }
-                }
 
                 return true;
             });
@@ -594,7 +592,6 @@
                 else if (estLower.includes('proceso') || estLower.includes('curso')) badgeEstatus = 'bg-primary';
                 else if (estLower.includes('pendiente')) badgeEstatus = 'bg-warning text-dark';
 
-                // Formatear Avisos Y4 (si hay varios separados por saltos de línea o comas, los muestra ordenados)
                 let avisosHtml = "-";
                 if (avisoY4 && avisoY4 !== "-") {
                     let listaAvisos = String(avisoY4).split(/[\n,]+/);
