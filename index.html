@@ -86,7 +86,7 @@
         }
         
         .filter-label {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 700;
             color: #475569;
             margin-bottom: 4px;
@@ -175,7 +175,7 @@
         </div>
     </div>
 
-    <!-- Panel de Filtros Interactivos (Incluyendo Filtro por Aviso Y4) -->
+    <!-- Panel de Filtros Interactivos (Incluyendo Fechas) -->
     <div class="row">
         <div class="col-12">
             <div class="panel-box py-3">
@@ -193,7 +193,7 @@
                         </select>
                     </div>
                     <div class="col-md-2 col-sm-6">
-                        <label class="filter-label"><i class="fa-solid fa-hashtag"></i> N° de Equipo SAP</label>
+                        <label class="filter-label"><i class="fa-solid fa-hashtag"></i> N° Equipo SAP</label>
                         <select id="filtroEquipo" class="form-select form-select-sm" onchange="aplicarFiltros()">
                             <option value="">Todos los equipos</option>
                         </select>
@@ -219,8 +219,17 @@
                             <option value="baja">Baja 🟢</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-12 text-end">
-                        <button class="btn btn-sm btn-outline-danger w-100" onclick="limpiarFiltros()"><i class="fa-solid fa-rotate-left"></i> Limpiar Filtros</button>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="filter-label"><i class="fa-solid fa-calendar-day"></i> Fechas (Desde / Hasta)</label>
+                        <div class="d-flex gap-1">
+                            <input type="date" id="fechaDesde" class="form-control form-control-sm" onchange="aplicarFiltros()" title="Fecha Desde">
+                            <input type="date" id="fechaHasta" class="form-control form-control-sm" onchange="aplicarFiltros()" title="Fecha Hasta">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12 text-end">
+                        <button class="btn btn-sm btn-outline-danger px-4" onclick="limpiarFiltros()"><i class="fa-solid fa-rotate-left"></i> Limpiar Filtros</button>
                     </div>
                 </div>
             </div>
@@ -494,6 +503,8 @@
             document.getElementById("filtroAvisoY4").value = "";
             document.getElementById("filtroCodigo").value = "";
             document.getElementById("filtroPrioridad").value = "";
+            document.getElementById("fechaDesde").value = "";
+            document.getElementById("fechaHasta").value = "";
             document.getElementById("buscadorTabla").value = "";
             aplicarFiltros();
         }
@@ -504,6 +515,8 @@
             const fAviso = document.getElementById("filtroAvisoY4").value.toLowerCase();
             const fCodigo = document.getElementById("filtroCodigo").value.toLowerCase();
             const fPrioridad = document.getElementById("filtroPrioridad").value.toLowerCase();
+            const fDesde = document.getElementById("fechaDesde").value;
+            const fHasta = document.getElementById("fechaHasta").value;
             const fTexto = document.getElementById("buscadorTabla").value.toLowerCase();
 
             const datosFiltrados = datosGlobales.filter(item => {
@@ -512,6 +525,7 @@
                 let aviso = String(obtenerValorColumna(item, ["Aviso Y4", "AvisoY4", "Avisos Y4", "Aviso", "Y4"])).toLowerCase();
                 let codigo = String(obtenerValorColumna(item, ["Código partida", "Codigo partida", "Código", "Codigo"])).toLowerCase();
                 let prioridad = String(obtenerValorColumna(item, ["Prioridad"])).toLowerCase();
+                let fechaStr = String(obtenerValorColumna(item, ["Fecha inspección", "Fecha inspeccion", "Fecha"]));
                 let textoFila = JSON.stringify(item).toLowerCase();
 
                 if (fEstacion && !estacion.includes(fEstacion)) return false;
@@ -520,6 +534,18 @@
                 if (fCodigo && codigo !== fCodigo) return false;
                 if (fPrioridad && prioridad !== fPrioridad) return false;
                 if (fTexto && !textoFila.includes(fTexto)) return false;
+
+                // Validación de Rango de Fechas
+                if (fDesde || fHasta) {
+                    if (fechaStr) {
+                        const partes = fechaStr.split('/');
+                        if (partes.length === 3) {
+                            const fechaObj = new Date(partes[2], partes[1] - 1, partes[0]);
+                            if (fDesde && fechaObj < new Date(fDesde)) return false;
+                            if (fHasta && fechaObj > new Date(fHasta)) return false;
+                        }
+                    }
+                }
 
                 return true;
             });
