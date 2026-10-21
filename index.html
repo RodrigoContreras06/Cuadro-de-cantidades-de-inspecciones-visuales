@@ -738,8 +738,8 @@
                 estacionesOficiales.forEach(e => {
                     sumaCantFila += item.cantidades[e];
                 });
-                let precioUnit = preciosUnitariosGuardados[codigo] || preciosUnitariosGuardados[cod] || 0;
-                totalMonto += (sumaCantFila * (preciosUnitariosGuardados[cod] || 0));
+                let precioUnit = preciosUnitariosGuardados[cod] || 0;
+                totalMonto += (sumaCantFila * precioUnit);
             }
 
             const formatoCOP = "$" + totalMonto.toLocaleString('es-CO') + " COP";
