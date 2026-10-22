@@ -620,7 +620,9 @@
                 let avisoY4 = obtenerValorColumna(row, ["Aviso Y4", "AvisoY4", "Avisos Y4", "Aviso", "Y4"]) || "-";
                 let partidaOficial = obtenerValorColumna(row, ["Partida", "Descripción de la partida", "Componente inspeccionado"]) || codigo;
                 let rawUbicacion = obtenerValorColumna(row, ["Ubicación (coordenadas)", "Ubicación", "Ubicacion"]);
-                let linkOneDrive = obtenerValorColumna(row, ["OneDrive", "Informe OneDrive", "Link OneDrive", "URL OneDrive"]);
+                
+                // INCLUYE "Ver Informe" que es el nombre exacto de la columna AB en tu hoja
+                let linkOneDrive = obtenerValorColumna(row, ["Ver Informe", "OneDrive", "Informe OneDrive", "Link OneDrive", "URL OneDrive"]);
 
                 if (prioridad === "alta") cntAlta++;
                 else if (prioridad === "media") cntMedia++;
@@ -656,7 +658,7 @@
                     ? `<a href="${urlMaps}" target="_blank" class="btn-mapa" title="Ver satelital"><i class="fa-solid fa-earth-americas"></i> Ver Mapa</a>` 
                     : `<span class="text-muted small">-</span>`;
 
-                let btnOneDrive = linkOneDrive && linkOneDrive !== "-" && linkOneDrive !== "N/A"
+                let btnOneDrive = linkOneDrive && linkOneDrive !== "-" && linkOneDrive !== "N/A" && String(linkOneDrive).trim() !== ""
                     ? `<a href="${linkOneDrive}" target="_blank" class="btn-onedrive" title="Ver informe en OneDrive"><i class="fa-brands fa-microsoft"></i> Ver Informe</a>`
                     : `<span class="text-muted small">-</span>`;
 
